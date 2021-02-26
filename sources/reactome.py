@@ -15,7 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from .base import RemoteSource
+from import_sources import RemoteSource
 
 class Reactome(RemoteSource):
     name = 'Reactome (Bio)'

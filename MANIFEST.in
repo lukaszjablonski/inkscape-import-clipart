@@ -2,6 +2,8 @@ include import_clipart.ui
 include import_clipart.py
 include import_clipart.inx
 include import_clipart.svg
+include import_sources.py
 include README.md
-include manage-extensions.inx
-include manage-extensions.py
+include LICENSE.txt
+include sources/*.py
+include sources/*.svg

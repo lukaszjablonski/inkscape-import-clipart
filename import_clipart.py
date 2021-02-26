@@ -20,22 +20,24 @@
 Import clipart extension (GUI)
 """
 
-__version__ = '0.5'
+__version__ = '0.6'
 __pkgname__ = 'inkscape-clipart-importer'
 
 import os
 import sys
 import logging
 
+from base64 import encodebytes
+
 import inkex
 from inkex import inkscape_env
-from inkex.elements import load_svg, Defs, NamedView, Metadata, SvgDocumentElement
+from inkex.elements import load_svg, Image, Defs, NamedView, Metadata, SvgDocumentElement
 
 from appdirs import user_cache_dir
 from gtkme import GtkApp, Window, PixmapManager, IconView, asyncme
 
 # This just makes damn sure we're looking at the right path
-from sources.base import RemoteSource
+from import_sources import RemoteSource
 
 CACHE_DIR = user_cache_dir('inkscape-import-clipart', 'Inkscape')
 
@@ -79,6 +81,8 @@ class ImporterWindow(Window):
         self.source = self.widget('service_list')
         self.source_model = self.source.get_model()
         self.source_model.clear()
+
+        RemoteSource.load(os.path.join(os.path.dirname(__file__), 'sources'))
         for x, (key, source) in enumerate(RemoteSource.sources.items()):
             # We add them in GdkPixbuf, string, string format (see glade file)
             self.source_model.append([self.pixmaps.get(source.icon), source.name, key])
@@ -181,20 +185,54 @@ class ImportClipart(inkex.EffectExtension):
     def import_from_file(self, filename):
         with open(filename, 'rb') as fhl:
             head = fhl.read(100)
-            if b'<svg' in head:
-                container = inkex.Layer.new(os.path.basename(filename))
-                for child in self.import_svg(load_svg(head + fhl.read())):
-                    container.append(child)
-                self.svg.get_current_layer().append(container)
+            container = inkex.Layer.new(os.path.basename(filename))
+            if b'<?xml' in head:
+                objs = self.import_svg(load_svg(head + fhl.read()))
             else:
-                # TODO: Handle raster images here
-                print("Not sure what type of file this is...")
+                objs = self.import_raster(filename, fhl)
+
+            for child in objs:
+                container.append(child)
+            self.svg.get_current_layer().append(container)
 
     def effect(self):
         def select_func(filename):
             self.import_from_file(filename)
 
         App(start_loop=True, select=select_func)
+
+    def import_raster(self, filename, handle):
+        """Import a raster image"""
+        # Don't read the whole file to check the header
+        handle.seek(0)
+        file_type = self.get_type(filename, handle.read(10))
+        handle.seek(0)
+
+        if file_type:
+            # Future: Change encodestring to encodebytes when python3 only
+            node = Image()
+            node.label = os.path.basename(filename)
+            node.set('xlink:href', 'data:{};base64,{}'.format(
+                file_type, encodebytes(handle.read()).decode('ascii')))
+            yield node
+
+    @staticmethod
+    def get_type(path, header):
+        """Basic magic header checker, returns mime type"""
+        # Taken from embedimage.py
+        for head, mime in (
+                (b'\x89PNG', 'image/png'),
+                (b'\xff\xd8', 'image/jpeg'),
+                (b'BM', 'image/bmp'),
+                (b'GIF87a', 'image/gif'),
+                (b'GIF89a', 'image/gif'),
+                (b'MM\x00\x2a', 'image/tiff'),
+                (b'II\x2a\x00', 'image/tiff'),
+            ):
+            if header.startswith(head):
+                return mime
+        return None
+
 
 if __name__ == '__main__':
     ImportClipart().run()

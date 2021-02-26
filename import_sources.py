@@ -15,16 +15,16 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 """
-Base module for all search source modules.
+Base module for all import clipart search source modules.
 """
 
 import re
 import os
+import sys
 import json
 import logging
 import requests
-
-from zipfile import ZipFile
+import importlib
 
 from cachecontrol import CacheControl, CacheControlAdapter
 from cachecontrol.caches.file_cache import FileCache
@@ -59,6 +59,21 @@ class RemoteSource:
     file_cls = RemoteFile
     is_default = False
 
+    @classmethod
+    def load(cls, name):
+        """Load the file or directory of remote sources"""
+        if os.path.isfile(name):
+            sys.path, sys_path = [os.path.dirname(name)], sys.path
+            try:
+                importlib.import_module(os.path.basename(name).rsplit('.', 1)[0])
+            except ImportError:
+                logging.err("Failed to load module: {name}")
+            sys.path = sys_path
+        elif os.path.isdir(name):
+            for child in os.listdir(name):
+                if not child.startswith('_') and child.endswith('.py'):
+                    cls.load(os.path.join(name, child))
+
     def search(self, query, tags=[]):
         """
         Search for the given query and yield basic informational blocks t hand to file_cls.
@@ -80,6 +95,9 @@ class RemoteSource:
             cache=FileCache(cache_dir),
             heuristic=ExpiresAfter(days=5),
         ))
+
+    def __del__(self):
+        self.session.close()
 
     def file_search(self, query):
         """Search for extension packages"""

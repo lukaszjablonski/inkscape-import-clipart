@@ -17,9 +17,13 @@
 Setup the inkscape extensions manager (inkman)
 """
 
+import os
 from setuptools import setup
 
 from import_clipart import __version__, __pkgname__, __doc__
+
+base_dir = os.path.dirname(__file__)
+sources = os.listdir(os.path.join(base_dir, 'sources'))
 
 setup(
     name=__pkgname__,
@@ -27,12 +31,14 @@ setup(
     description=__doc__,
     long_description="See README for full details",
     author='Martin Owens',
-    url='https://gitlab.com/inkscape/import-clipart',
+    url='https://gitlab.com/doctormo/import-clipart',
     author_email='doctormo@gmail.com',
     platforms='linux',
     license='GPLv3',
+    py_modules=['import_sources'],
     data_files=[
-        ('', ['import_clipart.py', 'import_clipart.inx', 'import_clipart.ui', 'import_clipart.svg']),
+        ('import_clipart', ['import_clipart.py', 'import_clipart.inx', 'import_clipart.ui', 'import_clipart.svg']),
+        ('import_clipart/sources', [f'sources/{s}' for s in sources if not s.startswith('__')]),
     ],
     classifiers=[
         'Environment :: Plugins',
