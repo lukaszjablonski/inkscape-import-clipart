@@ -29,21 +29,45 @@ import logging
 
 import inkex
 from inkex import inkscape_env
+from inkex.elements import load_svg, Defs, NamedView, Metadata, SvgDocumentElement
 
 from appdirs import user_cache_dir
-from gtkme import GtkApp, Window, PixmapManager, asyncme
+from gtkme import GtkApp, Window, PixmapManager, IconView, asyncme
 
 # This just makes damn sure we're looking at the right path
 from sources.base import RemoteSource
 
 CACHE_DIR = user_cache_dir('inkscape-import-clipart', 'Inkscape')
 
+class ResultsIconView(IconView):
+    """The search results shown as icons"""
+    def get_markup(self, item):
+        return item.string
+
+    def get_icon(self, item):
+        return item.icon
+
+    def setup(self, svlist):
+        svlist.set_markup_column(1)
+        svlist.set_pixbuf_column(2)
+        crt, crp = svlist.get_cells()
+        self.crt_notify = crt.connect('notify', self.keep_size)
+
+    def keep_size(self, crt, *args):
+        """Hack Gtk to keep cells smaller"""
+        crt.handler_block(self.crt_notify)
+        crt.set_property('width', 150)
+        crt.handler_unblock(self.crt_notify)
+
+
 class ImporterWindow(Window):
+    """The window that is in the glade file"""
     name = 'import_clipart'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.selected = []
         self.pixmaps = PixmapManager('pixmaps',
             pixmap_dir=CACHE_DIR, size=150, load_size=(300,300))
 
@@ -51,55 +75,71 @@ class ImporterWindow(Window):
         self.searchbox = self.searching.get_parent()
         self.searchbox.remove(self.searching)
 
+        # Add each of the source services from their plug-in modules
         self.source = self.widget('service_list')
         self.source_model = self.source.get_model()
         self.source_model.clear()
-        for key, source in RemoteSource.sources.items():
+        for x, (key, source) in enumerate(RemoteSource.sources.items()):
+            # We add them in GdkPixbuf, string, string format (see glade file)
             self.source_model.append([self.pixmaps.get(source.icon), source.name, key])
-        self.source.set_active(0)
+            if source.is_default:
+                self.source.set_active(x)
 
         self.select_func = self.gapp.opt.select
+        self.results = ResultsIconView(self.widget('results'))
+        self.results.pixmaps = self.pixmaps
+
+    def select_image(self, widget):
+        self.selected = []
+        for item_path in widget.get_selected_items():
+            item_iter = self.results._model.get_iter(item_path)
+            item = self.results._model[item_iter][0]
+            self.selected.append(item)
+
+    def get_selected_source(self):
+        """Return the selected source class"""
+        _iter = self.source.get_active_iter()
+        key = self.source_model[_iter][2]
+        return RemoteSource.sources[key](CACHE_DIR)
 
     def apply_image(self, widget):
         """Apply the selected image and quit"""
-        # XXX Download svg file here to cache dir and return filename
-        self.select_func(None)
+        if not self.selected:
+            return
+        for item in self.selected:
+            self.select_func(item.get_file())
         self.exit()
 
-    def remote_search(self, widget):
+    def search(self, widget):
         """Remote search activation"""
         query = widget.get_text()
         if len(query) > 2:
-            self._remote_search(query)
-
-    def _remote_search(self, query):
-        filtered = self.widget('remote_target').get_active()
-        self.remote.clear()
-        self.widget('remote_install').set_sensitive(False)
-        self.widget('remote_info').set_sensitive(False)
-        self.widget('dl-search').set_sensitive(False)
-        self.searchbox.add(self.searching)
-        self.widget('dl-searching').start()
-        self.async_search(query, filtered)
+            self.results.clear()
+            self.widget('apply-image').set_sensitive(False)
+            self.widget('dl-search').set_sensitive(False)
+            self.widget('dl-searching').start()
+            self.searchbox.add(self.searching)
+            self.async_search(query)
 
     @asyncme.run_or_none
-    def async_search(self, query, filtered):
+    def async_search(self, query):
         """Asyncronous searching in PyPI"""
-        for package in self.target.search(query, filtered):
+        for package in self.get_selected_source().file_search(query):
             self.add_search_result(package)
         self.search_finished()
 
     @asyncme.mainloop_only
     def add_search_result(self, package):
         """Adding things to Gtk must be done in mainloop"""
-        self.remote.add_item([package])
+        self.results.add_item(package)
 
     @asyncme.mainloop_only
     def search_finished(self):
         """After everything, finish the search"""
         self.searchbox.remove(self.searching)
         self.widget('dl-search').set_sensitive(True)
-        self.replace(self.searching, self.remote)
+        self.widget('apply-image').set_sensitive(True)
+        self.replace(self.searching, self.results)
 
     def dialog(self, msg):
         self.widget('dialog_msg').set_label(msg)
@@ -116,23 +156,45 @@ class App(GtkApp):
     app_name = 'inkscape-import-clipart'
     windows = [ImporterWindow]
 
-class ImportClipart(inkex.GenerateExtension):
+class ImportClipart(inkex.EffectExtension):
     """Import an svg from the internet"""
     selected_filename = None
 
-    def add_arguments(self, pars):
-        pass
+    def merge_defs(self, defs):
+        """Add all the items in defs to the self.svg.defs"""
+        target = self.svg.defs
+        for child in defs:
+            target.append(child)
 
-    def generate(self):
+    def import_svg(self, new_svg):
+        """Import an svg file into the current document"""
+        for child in new_svg.getroot():
+            if isinstance(child, SvgDocumentElement):
+                yield from self.import_svg(child)
+            elif isinstance(child, Defs):
+                self.merge_defs(child)
+            elif isinstance(child, (NamedView, Metadata)):
+                pass
+            else:
+                yield child
+
+    def import_from_file(self, filename):
+        with open(filename, 'rb') as fhl:
+            head = fhl.read(100)
+            if b'<svg' in head:
+                container = inkex.Layer.new(os.path.basename(filename))
+                for child in self.import_svg(load_svg(head + fhl.read())):
+                    container.append(child)
+                self.svg.get_current_layer().append(container)
+            else:
+                # TODO: Handle raster images here
+                print("Not sure what type of file this is...")
+
+    def effect(self):
         def select_func(filename):
-            if os.path.isfile(filename):
-                self.selected_filename = filename
+            self.import_from_file(filename)
 
         App(start_loop=True, select=select_func)
-
-        if self.selected_filename:
-            return self.import_from_file(self.selected_filename)
-        return None
 
 if __name__ == '__main__':
     ImportClipart().run()

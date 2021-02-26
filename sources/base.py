@@ -1,19 +1,18 @@
 #
-# Copyright (C) 2021 Martin Owens
+# Copyright 2021 Martin Owens <doctormo@gmail.com>
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 """
 Base module for all search source modules.
@@ -37,33 +36,20 @@ from collections import defaultdict
 
 class RemoteFile:
     """Lazy access to remote files"""
-    def __init__(self, session, cache_dir, info):
-        self.session = session
-        self.cache_dir = cache_dir
+    icon = property(lambda self: self.remote.to_local_file(self.info['thumbnail']))
+    get_file = lambda self: self.remote.to_local_file(self.info['file'])
+
+    def __init__(self, remote, info):
         for field in ('name', 'thumbnail', 'license', 'file'):
             if field not in info:
                 raise ValueError(f"Field {field} not provided in RemoteFile package")
         self.info = info
+        self.remote = remote
 
-    def __str__(self):
+    @property
+    def string(self):
         return self.info['name']
 
-    def get(self):
-        return self.session.get(self.info['file'])
-
-    def filename(self):
-        return self.info['file'].split('/')[-1]
-
-    def filepath(self):
-        return os.path.join(self.cache_dir, self.filename())
-
-    def as_local_file(self):
-        remote = self.get()
-        if remote and remote.status_code == 200:
-            with open(self.filepath(), 'wb') as fhl:
-                fhl.write(remote.content)
-            return self.filepath()
-        return None
 
 class RemoteSource:
     """A remote source of svg images which can be searched and downloaded"""
@@ -71,9 +57,15 @@ class RemoteSource:
     name = None
     icon = None
     file_cls = RemoteFile
+    is_default = False
 
     def search(self, query, tags=[]):
-        """Search for the given query and yield each item, will raise if any other response"""
+        """
+        Search for the given query and yield basic informational blocks t hand to file_cls.
+
+        Required fields per yielded object are: name, license, thumbnail and file.
+        Optional fields are: id, summary, author, created, popularity
+        """
         raise NotImplementedError("You must implement a search function for this remote source!")
 
     sources = {}
@@ -82,7 +74,6 @@ class RemoteSource:
             cls.sources[cls.__name__] = cls
 
     def __init__(self, cache_dir):
-        self.version = version
         self.session = requests.session()
         self.cache_dir = cache_dir
         self.session.mount('https://', CacheControlAdapter(
@@ -93,5 +84,14 @@ class RemoteSource:
     def file_search(self, query):
         """Search for extension packages"""
         for info in self.search(query):
-            yield self.file_cls(self.session, self.cache_dir, info)
+            yield self.file_cls(self, info)
 
+    def to_local_file(self, url):
+        """Get a remote url and turn it into a local file"""
+        filepath = os.path.join(self.cache_dir, url.split('/')[-1])
+        remote = self.session.get(url)
+        if remote and remote.status_code == 200:
+            with open(filepath, 'wb') as fhl:
+                fhl.write(remote.content)
+            return filepath
+        return None
