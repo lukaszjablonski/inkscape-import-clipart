@@ -18,33 +18,28 @@
 import hashlib
 from import_sources import RemoteSource
 
-def get_thumbnail(image, width=200):
-    """Generate a wikimedia thumbnail url"""
-    url = "https://upload.wikimedia.org/wikipedia/commons/thumb/"
-    # image = e.g. from Wikidata, width in pixels
-    image = image.replace(' ', '_') # need to replace spaces with underline 
-    my_hash = hashlib.md5()
-    my_hash.update(image.encode('utf-8'))
-    digest = my_hash.hexdigest()
-    raster = image + '.png' if image.endswith('.svg') else image
-    url += "{}/{}/{}/{}px-{}".format(digest[0], digest[0:2], image, width, raster)
-    return url
-
 class Wikimedia(RemoteSource):
     name = 'Wikimedia'
     icon = 'sources/wikimedia.svg'
-    base_url = "https://en.wikipedia.org/w/api.php"
+    base_url = "https://commons.wikimedia.org/w/api.php"
 
     def search(self, query):
         params = {
             "action": "query",
             "format": "json",
-            "generator": "images",
-            "prop": "imageinfo",
-            "gimlimit": 100,
-            "redirects": 1,
-            "titles": query,
-            "iiprop": "user|timestamp|url|thumbmime|mime|mediatype",
+            "uselang": "en",
+            "generator": "search",
+            "gsrsearch": "filetype:bitmap|drawing filemime:svg " + query,
+            "gsrlimit": 40,
+            "gsroffset": 0,
+            "gsrinfo": "totalhits|suggestion",
+            "gsrprop": "size|wordcount",
+            "gsrnamespace": 6,
+            "prop": "info|imageinfo|entityterms",
+            "inprop": "url",
+            "iiprop": "url|size|mime|user",
+            "iiurlheight": 180,
+            "wbetterms": "label",
         }
         response = self.session.get(self.base_url, params=params).json()
         if 'error' in response:
@@ -56,9 +51,9 @@ class Wikimedia(RemoteSource):
                 'name': item['title'].split(':', 1)[-1],
                 'author': img['user'],
                 'license': 'Unknown', # XXX
-                'summary': 'None',
-                'thumbnail': get_thumbnail(img['url'].rsplit('/', 1)[-1]),
-                'created': img['timestamp'],
+                'summary': "", # No data
+                'thumbnail': img['thumburl'],
+                'created': item['touched'],
                 'popularity': 0, # No data
                 'file': img['url'],
             }
