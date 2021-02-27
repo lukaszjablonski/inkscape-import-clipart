@@ -27,11 +27,15 @@ import os
 import sys
 import logging
 
+from collections import defaultdict
 from base64 import encodebytes
 
 import inkex
-from inkex import inkscape_env
-from inkex.elements import load_svg, Image, Defs, NamedView, Metadata, SvgDocumentElement
+from inkex import inkscape_env, Style
+from inkex.elements import (
+    load_svg, Image, Defs, NamedView, Metadata,
+    SvgDocumentElement, StyleElement
+)
 
 from appdirs import user_cache_dir
 from gtkme import GtkApp, Window, PixmapManager, IconView, asyncme
@@ -168,13 +172,39 @@ class ImportClipart(inkex.EffectExtension):
         """Add all the items in defs to the self.svg.defs"""
         target = self.svg.defs
         for child in defs:
+            if isinstance(child, StyleElement):
+                continue # Already appled in merge_stylesheets()
             target.append(child)
+
+    def merge_stylesheets(self, svg):
+        """Because we don't want conflicting style-sheets (classes, ids, etc) we scrub them"""
+        elems = defaultdict(list)
+        # 1. Find all styles, and all elements that apply to them
+        for sheet in svg.getroot().stylesheets:
+            for style in sheet:
+                xpath = style.to_xpath()
+                for elem in svg.xpath(xpath):
+                    elems[elem].append(style)
+                    # 1b. Clear possibly conflicting attributes
+                    if '@id' in xpath:
+                        elem.set_random_id()
+                    if '@class' in xpath:
+                        elem.set('class', None)
+        # 2. Apply each style cascade sequentially
+        for elem, styles in elems.items():
+            output = Style()
+            for style in styles:
+                output += style
+            elem.style = output + elem.style
 
     def import_svg(self, new_svg):
         """Import an svg file into the current document"""
+        self.merge_stylesheets(new_svg)
         for child in new_svg.getroot():
             if isinstance(child, SvgDocumentElement):
                 yield from self.import_svg(child)
+            elif isinstance(child, StyleElement):
+                continue # Already applied in merge_stylesheets()
             elif isinstance(child, Defs):
                 self.merge_defs(child)
             elif isinstance(child, (NamedView, Metadata)):
