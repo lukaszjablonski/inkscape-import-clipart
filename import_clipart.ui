@@ -198,6 +198,22 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
             <property name="margin_left">4</property>
             <property name="margin_right">4</property>
             <child>
+              <object class="GtkSpinner" id="dl-searching">
+                <property name="name">searcher</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="events"/>
+                <property name="margin_top">4</property>
+                <property name="margin_bottom">4</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">6</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkSearchEntry" id="dl-search">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -212,22 +228,6 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinner" id="dl-searching">
-                <property name="name">searcher</property>
-                <property name="can_focus">False</property>
-                <property name="events"/>
-                <property name="margin_top">4</property>
-                <property name="margin_bottom">4</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">6</property>
-                <property name="pack_type">end</property>
                 <property name="position">1</property>
               </packing>
             </child>

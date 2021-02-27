@@ -73,12 +73,10 @@ class ImporterWindow(Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.widget('dl-searching').hide()
+
         self.pixmaps = PixmapManager('pixmaps',
             pixmap_dir=CACHE_DIR, size=150, load_size=(300,300))
-
-        self.searching = self.widget('dl-searching')
-        self.searchbox = self.searching.get_parent()
-        self.searchbox.remove(self.searching)
 
         # Add each of the source services from their plug-in modules
         self.source = self.widget('service_list')
@@ -153,15 +151,15 @@ class ImporterWindow(Window):
         self.widget('apply-image').set_sensitive(False)
         self.widget('dl-search').set_sensitive(False)
         self.widget('dl-searching').start()
-        self.searchbox.add(self.searching)
+        self.widget('dl-searching').show()
 
     @asyncme.mainloop_only
     def search_finished(self):
         """After everything, finish the search"""
-        self.searchbox.remove(self.searching)
         self.widget('dl-search').set_sensitive(True)
+        self.widget('dl-searching').hide()
+        self.widget('dl-searching').stop()
         self.widget('apply-image').set_sensitive(True)
-        self.replace(self.searching, self.results)
 
     def dialog(self, msg):
         self.widget('dialog_msg').set_label(msg)
