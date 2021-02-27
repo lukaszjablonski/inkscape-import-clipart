@@ -280,6 +280,7 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="margin">6</property>
+                <signal name="item-activated" handler="apply_image" swapped="no"/>
                 <signal name="selection-changed" handler="select_image" swapped="no"/>
               </object>
             </child>

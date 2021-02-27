@@ -21,7 +21,6 @@ Base module for all import clipart search source modules.
 import re
 import os
 import sys
-import json
 import logging
 import requests
 import importlib
@@ -33,6 +32,19 @@ from cachecontrol.heuristics import ExpiresAfter
 from inkex.command import CommandNotFound, ProgramRunError, call
 from inkex.inkscape_env import get_bin
 from collections import defaultdict
+
+class RemotePage:
+    """Lazy access to paging systems"""
+    icon = "sources/next_page.svg"
+    string = property(lambda self: "Next Page")
+
+    def __init__(self, remote, func):
+        self.func = func
+        self.remote = remote
+
+    def get_next_page(self):
+        for info in self.func():
+            yield self.remote.result_to_cls(info)
 
 class RemoteFile:
     """Lazy access to remote files"""
@@ -57,17 +69,19 @@ class RemoteSource:
     name = None
     icon = None
     file_cls = RemoteFile
+    page_cls = RemotePage
     is_default = False
+    is_enabled = True
 
     @classmethod
     def load(cls, name):
         """Load the file or directory of remote sources"""
         if os.path.isfile(name):
-            sys.path, sys_path = [os.path.dirname(name)], sys.path
+            sys.path, sys_path = [os.path.dirname(name)] + sys.path, sys.path
             try:
                 importlib.import_module(os.path.basename(name).rsplit('.', 1)[0])
             except ImportError:
-                logging.err("Failed to load module: {name}")
+                logging.error(f"Failed to load module: {name}")
             sys.path = sys_path
         elif os.path.isdir(name):
             for child in os.listdir(name):
@@ -102,7 +116,12 @@ class RemoteSource:
     def file_search(self, query):
         """Search for extension packages"""
         for info in self.search(query):
-            yield self.file_cls(self, info)
+            yield self.result_to_cls(info)
+
+    def result_to_cls(self, info):
+        if callable(info):
+            return self.page_cls(self, info)
+        return self.file_cls(self, info)
 
     def to_local_file(self, url):
         """Get a remote url and turn it into a local file"""

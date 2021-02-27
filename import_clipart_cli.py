@@ -13,7 +13,10 @@ def run():
     source = RemoteSource.sources[sys.argv[1]]('/tmp')
 
     for item in source.search(sys.argv[2]):
-        print(json.dumps(item, indent=2))
+        if callable(item):
+            print(f"Next Page {item}")
+        else:
+            print(json.dumps(item, indent=2))
 
 if __name__ == '__main__':
     run()

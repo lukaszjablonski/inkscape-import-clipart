@@ -15,12 +15,62 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from import_sources import RemoteSource
+import json
+import logging
+
+from import_sources import RemoteSource, RemoteFile
+from urllib.parse import urljoin, parse_qs
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
+class OpenClipartFile(RemoteFile):
+    def get_file(self):
+        """Extract search result from html"""
+        response = self.remote.session.get(self.info['file'])
+        soup = BeautifulSoup(response.text, features="lxml")
+        for script in soup.find_all('script'):
+            content = script.contents
+            if content and 'image' in content[0]:
+                try:
+                    data = json.loads(content[0])
+                    return self.remote.to_local_file(data['image']['url'])
+                except Exception:
+                    continue
+        logging.error("Couldn't load svg from {}".format(self.info['file']))
+
 
 class OpenClipart(RemoteSource):
     name = 'Open Clipart Library'
     icon = 'sources/ocal.svg'
+    base_url = 'https://openclipart.org/search/'
+    is_enabled = BeautifulSoup is not None
+    file_cls = OpenClipartFile
+
+    def html_search(self, response):
+        """Extract search results from html"""
+        soup = BeautifulSoup(response.text, features="lxml")
+        for div in soup.find_all("div", {"class": "artwork"}):
+            if div.a and div.a.img:
+                link = urljoin(self.base_url, div.a.get('href'))
+                img = urljoin(self.base_url, div.a.img.get('src'))
+                yield {
+                    'file': link, # Not the actual file yet (see above)
+                    'name': div.a.img.get('alt'),
+                    'thumbnail': img,
+                    'license': 'PD',
+                }
+
+        for page in soup.find_all("a", {"class": "page-link", "aria-label": "Next"}):
+            if '=' in page.get('href', ''):
+                yield lambda: self._search(**parse_qs(page.get('href').split('?')[-1]))
 
     def search(self, query):
-        for item in []:
-            yield None
+        """HTML searching for now"""
+        return self._search(query=query)
+
+    def _search(self, **params):
+        response = self.session.get(self.base_url, params=params)
+        return self.html_search(response)

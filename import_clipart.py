@@ -41,7 +41,7 @@ from appdirs import user_cache_dir
 from gtkme import GtkApp, Window, PixmapManager, IconView, asyncme
 
 # This just makes damn sure we're looking at the right path
-from import_sources import RemoteSource
+from import_sources import RemoteSource, RemoteFile, RemotePage
 
 CACHE_DIR = user_cache_dir('inkscape-import-clipart', 'Inkscape')
 
@@ -73,7 +73,6 @@ class ImporterWindow(Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.selected = []
         self.pixmaps = PixmapManager('pixmaps',
             pixmap_dir=CACHE_DIR, size=150, load_size=(300,300))
 
@@ -98,11 +97,7 @@ class ImporterWindow(Window):
         self.results.pixmaps = self.pixmaps
 
     def select_image(self, widget):
-        self.selected = []
-        for item_path in widget.get_selected_items():
-            item_iter = self.results._model.get_iter(item_path)
-            item = self.results._model[item_iter][0]
-            self.selected.append(item)
+        pass # TODO: We may want to do interesting things here, like license warnings on select.
 
     def get_selected_source(self):
         """Return the selected source class"""
@@ -112,34 +107,53 @@ class ImporterWindow(Window):
 
     def apply_image(self, widget):
         """Apply the selected image and quit"""
-        if not self.selected:
-            return
-        for item in self.selected:
-            self.select_func(item.get_file())
-        self.exit()
+        to_exit = True
+        for item_path in self.widget('results').get_selected_items():
+            item_iter = self.results._model.get_iter(item_path)
+            item = self.results._model[item_iter][0]
+            if isinstance(item, RemoteFile):
+                self.select_func(item.get_file())
+            elif isinstance(item, RemotePage):
+                self.results._model.remove(item_iter)
+                self.search_started()
+                self.async_next_page(item)
+                to_exit = False
+
+        if to_exit:
+            self.exit()
 
     def search(self, widget):
         """Remote search activation"""
         query = widget.get_text()
         if len(query) > 2:
             self.results.clear()
-            self.widget('apply-image').set_sensitive(False)
-            self.widget('dl-search').set_sensitive(False)
-            self.widget('dl-searching').start()
-            self.searchbox.add(self.searching)
+            self.search_started()
             self.async_search(query)
 
     @asyncme.run_or_none
     def async_search(self, query):
         """Asyncronous searching in PyPI"""
-        for package in self.get_selected_source().file_search(query):
-            self.add_search_result(package)
+        for resource in self.get_selected_source().file_search(query):
+            self.add_search_result(resource)
+        self.search_finished()
+
+    @asyncme.run_or_none
+    def async_next_page(self, item):
+        for resource in item.get_next_page():
+            self.add_search_result(resource)
         self.search_finished()
 
     @asyncme.mainloop_only
-    def add_search_result(self, package):
+    def add_search_result(self, resource):
         """Adding things to Gtk must be done in mainloop"""
-        self.results.add_item(package)
+        self.results.add_item(resource)
+
+    def search_started(self):
+        """Set widgets to stun"""
+        self.widget('apply-image').set_sensitive(False)
+        self.widget('dl-search').set_sensitive(False)
+        self.widget('dl-searching').start()
+        self.searchbox.add(self.searching)
 
     @asyncme.mainloop_only
     def search_finished(self):

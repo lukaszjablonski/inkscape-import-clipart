@@ -55,5 +55,6 @@ setup(
         'requests',
         'cachecontrol[filecache]',
         'gtkme>=1.5.2',
+        'bs4',
     ],
 )
