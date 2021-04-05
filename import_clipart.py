@@ -233,7 +233,8 @@ class ImportClipart(inkex.EffectExtension):
                 # Add each object to the container
                 objs = self.import_svg(new_svg)
                 # Apply unit transformation to keep things the same sizes.
-                container.transform.add_scale(self.svg.unittouu(1.0) / new_svg.unittouu(1.0))
+                container.transform.add_scale(self.svg.unittouu(1.0) \
+                    / new_svg.getroot().unittouu(1.0))
             else:
                 objs = self.import_raster(filename, fhl)
 
