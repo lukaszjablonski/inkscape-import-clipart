@@ -229,7 +229,11 @@ class ImportClipart(inkex.EffectExtension):
             head = fhl.read(100)
             container = inkex.Layer.new(os.path.basename(filename))
             if b'<?xml' in head or b'<svg' in head:
-                objs = self.import_svg(load_svg(head + fhl.read()))
+                new_svg = load_svg(head + fhl.read())
+                # Add each object to the container
+                objs = self.import_svg(new_svg)
+                # Apply unit transformation to keep things the same sizes.
+                container.transform.add_scale(self.svg.unittouu(1.0) / new_svg.unittouu(1.0))
             else:
                 objs = self.import_raster(filename, fhl)
 
