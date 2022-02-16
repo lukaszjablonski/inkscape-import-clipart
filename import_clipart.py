@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2021 Martin Owens <doctormo@gmail.com>
+# Copyright 2022 Simon Duerr <dev@simonduerr.eu>
 #
 # This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -20,8 +21,8 @@
 Import clipart extension (GUI)
 """
 
-__version__ = '0.6'
-__pkgname__ = 'inkscape-clipart-importer'
+__version__ = "0.7"
+__pkgname__ = "inkscape-clipart-importer"
 
 import os
 import sys
@@ -33,8 +34,13 @@ from base64 import encodebytes
 import inkex
 from inkex import inkscape_env, Style
 from inkex.elements import (
-    load_svg, Image, Defs, NamedView, Metadata,
-    SvgDocumentElement, StyleElement
+    load_svg,
+    Image,
+    Defs,
+    NamedView,
+    Metadata,
+    SvgDocumentElement,
+    StyleElement,
 )
 
 from appdirs import user_cache_dir
@@ -43,10 +49,12 @@ from gtkme import GtkApp, Window, PixmapManager, IconView, asyncme
 # This just makes damn sure we're looking at the right path
 from import_sources import RemoteSource, RemoteFile, RemotePage
 
-CACHE_DIR = user_cache_dir('inkscape-import-clipart', 'Inkscape')
+CACHE_DIR = user_cache_dir("inkscape-import-clipart", "Inkscape")
+
 
 class ResultsIconView(IconView):
     """The search results shown as icons"""
+
     def get_markup(self, item):
         return item.string
 
@@ -57,33 +65,35 @@ class ResultsIconView(IconView):
         svlist.set_markup_column(1)
         svlist.set_pixbuf_column(2)
         crt, crp = svlist.get_cells()
-        self.crt_notify = crt.connect('notify', self.keep_size)
+        self.crt_notify = crt.connect("notify", self.keep_size)
 
     def keep_size(self, crt, *args):
         """Hack Gtk to keep cells smaller"""
         crt.handler_block(self.crt_notify)
-        crt.set_property('width', 150)
+        crt.set_property("width", 150)
         crt.handler_unblock(self.crt_notify)
 
 
 class ImporterWindow(Window):
     """The window that is in the glade file"""
-    name = 'import_clipart'
+
+    name = "import_clipart"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.widget('dl-searching').hide()
+        self.widget("dl-searching").hide()
 
-        self.pixmaps = PixmapManager('pixmaps',
-            pixmap_dir=CACHE_DIR, size=150, load_size=(300,300))
+        self.pixmaps = PixmapManager(
+            "pixmaps", pixmap_dir=CACHE_DIR, size=150, load_size=(300, 300)
+        )
 
         # Add each of the source services from their plug-in modules
-        self.source = self.widget('service_list')
+        self.source = self.widget("service_list")
         self.source_model = self.source.get_model()
         self.source_model.clear()
 
-        RemoteSource.load(os.path.join(os.path.dirname(__file__), 'sources'))
+        RemoteSource.load(os.path.join(os.path.dirname(__file__), "sources"))
         for x, (key, source) in enumerate(RemoteSource.sources.items()):
             # We add them in GdkPixbuf, string, string format (see glade file)
             self.source_model.append([self.pixmaps.get(source.icon), source.name, key])
@@ -91,11 +101,18 @@ class ImporterWindow(Window):
                 self.source.set_active(x)
 
         self.select_func = self.gapp.opt.select
-        self.results = ResultsIconView(self.widget('results'))
+        self.results = ResultsIconView(self.widget("results"))
         self.results.pixmaps = self.pixmaps
 
     def select_image(self, widget):
-        pass # TODO: We may want to do interesting things here, like license warnings on select.
+        """Callback when clicking on an image in the result list"""
+        for item_path in self.widget("results").get_selected_items():
+            item_iter = self.results._model.get_iter(item_path)
+            item = self.results._model[item_iter][0]
+            if type(item).__name__ != "RemotePage":
+                # open license dialog only if not a next page
+                self.license_dialog(item.licensetext, item.licenseurl)
+        pass  #TODO Add license also to metadata
 
     def get_selected_source(self):
         """Return the selected source class"""
@@ -106,7 +123,7 @@ class ImporterWindow(Window):
     def apply_image(self, widget):
         """Apply the selected image and quit"""
         to_exit = True
-        for item_path in self.widget('results').get_selected_items():
+        for item_path in self.widget("results").get_selected_items():
             item_iter = self.results._model.get_iter(item_path)
             item = self.results._model[item_iter][0]
             if isinstance(item, RemoteFile):
@@ -148,36 +165,51 @@ class ImporterWindow(Window):
 
     def search_started(self):
         """Set widgets to stun"""
-        self.widget('apply-image').set_sensitive(False)
-        self.widget('dl-search').set_sensitive(False)
-        self.widget('dl-searching').start()
-        self.widget('dl-searching').show()
+        self.widget("apply-image").set_sensitive(False)
+        self.widget("dl-search").set_sensitive(False)
+        self.widget("dl-searching").start()
+        self.widget("dl-searching").show()
 
     @asyncme.mainloop_only
     def search_finished(self):
         """After everything, finish the search"""
-        self.widget('dl-search').set_sensitive(True)
-        self.widget('dl-searching').hide()
-        self.widget('dl-searching').stop()
-        self.widget('apply-image').set_sensitive(True)
+        self.widget("dl-search").set_sensitive(True)
+        self.widget("dl-searching").hide()
+        self.widget("dl-searching").stop()
+        self.widget("apply-image").set_sensitive(True)
 
     def dialog(self, msg):
-        self.widget('dialog_msg').set_label(msg)
-        self.widget('dialog').set_transient_for(self.window)
-        self.widget('dialog').show_all()
+        self.widget("dialog_msg").set_label(msg)
+        self.widget("dialog").set_transient_for(self.window)
+        self.widget("dialog").show_all()
 
     def close_dialog(self, widget):
-        self.widget('dialog_msg').set_label('')
-        self.widget('dialog').hide()
+        self.widget("dialog_msg").set_label("")
+        self.widget("dialog").hide()
+
+    def license_dialog(self, msg, licenseurl):
+        self.widget("licensedialog").set_title("License information")
+        self.widget("license_msg").set_markup(msg)
+        self.widget("licenseinfo").set_uri(licenseurl)
+        self.widget("licensedialog").set_transient_for(self.window)
+        self.widget("licensedialog").show_all()
+
+    def close_licensedialog(self, widget):
+        self.widget("license_msg").set_markup("")
+        self.widget("licensedialog").hide()
+
 
 class App(GtkApp):
     """Load the inkscape extensions glade file and attach to window"""
+
     glade_dir = os.path.join(os.path.dirname(__file__))
-    app_name = 'inkscape-import-clipart'
+    app_name = "inkscape-import-clipart"
     windows = [ImporterWindow]
+
 
 class ImportClipart(inkex.EffectExtension):
     """Import an svg from the internet"""
+
     selected_filename = None
 
     def merge_defs(self, defs):
@@ -185,7 +217,7 @@ class ImportClipart(inkex.EffectExtension):
         target = self.svg.defs
         for child in defs:
             if isinstance(child, StyleElement):
-                continue # Already appled in merge_stylesheets()
+                continue  # Already applied in merge_stylesheets()
             target.append(child)
 
     def merge_stylesheets(self, svg):
@@ -195,13 +227,14 @@ class ImportClipart(inkex.EffectExtension):
         for sheet in svg.getroot().stylesheets:
             for style in sheet:
                 xpath = style.to_xpath()
+
                 for elem in svg.xpath(xpath):
                     elems[elem].append(style)
                     # 1b. Clear possibly conflicting attributes
-                    if '@id' in xpath:
+                    if "@id" in xpath:
                         elem.set_random_id()
-                    if '@class' in xpath:
-                        elem.set('class', None)
+                    if "@class" in xpath:
+                        elem.set("class", None)
         # 2. Apply each style cascade sequentially
         for elem, styles in elems.items():
             output = Style()
@@ -216,7 +249,7 @@ class ImportClipart(inkex.EffectExtension):
             if isinstance(child, SvgDocumentElement):
                 yield from self.import_svg(child)
             elif isinstance(child, StyleElement):
-                continue # Already applied in merge_stylesheets()
+                continue  # Already applied in merge_stylesheets()
             elif isinstance(child, Defs):
                 self.merge_defs(child)
             elif isinstance(child, (NamedView, Metadata)):
@@ -225,16 +258,17 @@ class ImportClipart(inkex.EffectExtension):
                 yield child
 
     def import_from_file(self, filename):
-        with open(filename, 'rb') as fhl:
+        with open(filename, "rb") as fhl:
             head = fhl.read(100)
             container = inkex.Layer.new(os.path.basename(filename))
-            if b'<?xml' in head or b'<svg' in head:
+            if b"<?xml" in head or b"<svg" in head:
                 new_svg = load_svg(head + fhl.read())
                 # Add each object to the container
                 objs = self.import_svg(new_svg)
                 # Apply unit transformation to keep things the same sizes.
-                container.transform.add_scale(self.svg.unittouu(1.0) \
-                    / new_svg.getroot().unittouu(1.0))
+                container.transform.add_scale(
+                    self.svg.unittouu(1.0) / new_svg.getroot().unittouu(1.0)
+                )
             else:
                 objs = self.import_raster(filename, fhl)
 
@@ -259,8 +293,12 @@ class ImportClipart(inkex.EffectExtension):
             # Future: Change encodestring to encodebytes when python3 only
             node = Image()
             node.label = os.path.basename(filename)
-            node.set('xlink:href', 'data:{};base64,{}'.format(
-                file_type, encodebytes(handle.read()).decode('ascii')))
+            node.set(
+                "xlink:href",
+                "data:{};base64,{}".format(
+                    file_type, encodebytes(handle.read()).decode("ascii")
+                ),
+            )
             yield node
 
     @staticmethod
@@ -268,18 +306,18 @@ class ImportClipart(inkex.EffectExtension):
         """Basic magic header checker, returns mime type"""
         # Taken from embedimage.py
         for head, mime in (
-                (b'\x89PNG', 'image/png'),
-                (b'\xff\xd8', 'image/jpeg'),
-                (b'BM', 'image/bmp'),
-                (b'GIF87a', 'image/gif'),
-                (b'GIF89a', 'image/gif'),
-                (b'MM\x00\x2a', 'image/tiff'),
-                (b'II\x2a\x00', 'image/tiff'),
-            ):
+            (b"\x89PNG", "image/png"),
+            (b"\xff\xd8", "image/jpeg"),
+            (b"BM", "image/bmp"),
+            (b"GIF87a", "image/gif"),
+            (b"GIF89a", "image/gif"),
+            (b"MM\x00\x2a", "image/tiff"),
+            (b"II\x2a\x00", "image/tiff"),
+        ):
             if header.startswith(head):
                 return mime
         return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ImportClipart().run()

@@ -1,5 +1,6 @@
 #
 # Copyright 2021 Martin Owens <doctormo@gmail.com>
+# Copyright 2022 Simon Duerr <dev@simonduerr.eu>
 #
 # This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -18,9 +19,10 @@
 import hashlib
 from import_sources import RemoteSource
 
+
 class Wikimedia(RemoteSource):
-    name = 'Wikimedia'
-    icon = 'sources/wikimedia.svg'
+    name = "Wikimedia"
+    icon = "sources/wikimedia.svg"
     base_url = "https://commons.wikimedia.org/w/api.php"
 
     def search(self, query):
@@ -37,24 +39,32 @@ class Wikimedia(RemoteSource):
             "gsrnamespace": 6,
             "prop": "info|imageinfo|entityterms",
             "inprop": "url",
-            "iiprop": "url|size|mime|user",
+            "iiprop": "url|size|mime|user|extmetadata",
             "iiurlheight": 180,
             "wbetterms": "label",
         }
         response = self.session.get(self.base_url, params=params).json()
-        if 'error' in response:
-            raise IOError(response['error']['info'])
-        for item in response['query']['pages'].values():
-            img = item['imageinfo'][0]
+        if "error" in response:
+            raise IOError(response["error"]["info"])
+        for item in response["query"]["pages"].values():
+            img = item["imageinfo"][0]
+            # get standard licenses
+            # for non standard licenses we have to get the ShortName and provide the url to the resource
+            try:
+                license = img["extmetadata"]["License"]["value"]
+                if license in ["cc0", "pd"]:
+                    license = "cc-0"
+            except KeyError:
+                license = img["extmetadata"]["LicenseShortName"]["value"]
             yield {
-                'id': item.get('pageid', None),
-                'name': item['title'].split(':', 1)[-1],
-                'author': img['user'],
-                'license': 'Unknown', # XXX
-                'summary': "", # No data
-                'thumbnail': img['thumburl'],
-                'created': item['touched'],
-                'popularity': 0, # No data
-                'file': img['url'],
+                "id": item.get("pageid", None),
+                "name": item["title"].split(":", 1)[-1],
+                "author": img["user"],
+                "license": license,
+                "summary": "",  # No data
+                "thumbnail": img["thumburl"],
+                "created": item["touched"],
+                "descriptionurl": item["canonicalurl"],
+                "popularity": 0,  # No data
+                "file": img["url"],
             }
-
