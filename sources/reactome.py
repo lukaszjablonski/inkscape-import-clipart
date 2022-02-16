@@ -30,7 +30,7 @@ class Reactome(RemoteSource):
     search_url = "https://reactome.org/ContentService/search/query"
     file_url = "https://reactome.org/icon/{stId}.svg"
     icon_url = "https://reactome.org/icon/{stId}.png"
-    all_licence = "CC-BY-SA 4.0"
+    all_licence = "cc-by-sa-4.0"
 
     def search(self, query):
         params = {
@@ -48,7 +48,7 @@ class Reactome(RemoteSource):
                 yield {
                     'id': entry['dbId'],
                     'name': TAG_REX.sub('', entry['name']),
-                    'author': entry['iconDesignerName'],
+                    'author': 'Reactome/'+entry['iconDesignerName'],
                     'summary': TAG_REX.sub('', entry['summation']),
                     'created': None, # No data
                     'popularity': 0, # No data
