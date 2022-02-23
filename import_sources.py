@@ -26,13 +26,11 @@ import logging
 import requests
 import importlib
 
-
 from cachecontrol import CacheControl, CacheControlAdapter
 from cachecontrol.caches.file_cache import FileCache
 from cachecontrol.heuristics import ExpiresAfter
 
 from inkex.command import CommandNotFound, ProgramRunError, call
-from inkex.inkscape_env import get_bin
 from collections import defaultdict
 
 licenses = {
