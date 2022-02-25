@@ -164,7 +164,6 @@ class RemoteFile:
     get_file = lambda self: self.remote.to_local_file(self.info["file"])
 
     def __init__(self, remote, info):
-
         for field in ("name", "thumbnail", "license", "file"):
             if field not in info:
                 raise ValueError(f"Field {field} not provided in RemoteFile package")
@@ -292,6 +291,7 @@ class RemoteSource:
         )  # needs UserAgent otherwise many 403 or 429 for wiki commons
         if remote and remote.status_code == 200:
             with open(filepath, "wb") as fhl:
-                fhl.write(remote.content)
-            return filepath
+                # If we don't have data, return None (instead of empty file)
+                if fhl.write(remote.content):
+                    return filepath
         return None

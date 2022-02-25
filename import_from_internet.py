@@ -93,8 +93,11 @@ class ImporterWindow(Window):
 
         self.select_func = self.gapp.kwargs['select']
         self.results = ResultsIconView(self.widget('results'), self.pixmaps)
+        self.pool = ResultsIconView(self.widget('pool'), self.pixmaps)
+        self.multiple = False
 
     def select_image(self, widget):
+        self.update_btn_import()
         pass # TODO: We may want to do interesting things here, like license warnings on select.
 
     def get_selected_source(self):
@@ -103,20 +106,66 @@ class ImporterWindow(Window):
         key = self.source_model[_iter][2]
         return RemoteSource.sources[key](CACHE_DIR)
 
-    def apply_image(self, widget):
-        """Apply the selected image and quit"""
-        to_exit = True
-        for item_path in self.widget('results').get_selected_items():
-            item_iter = self.results._model.get_iter(item_path)
-            item = self.results._model[item_iter][0]
-            if isinstance(item, RemoteFile):
-                self.select_func(item.get_file())
-            elif isinstance(item, RemotePage):
-                self.results._model.remove(item_iter)
-                self.search_started()
-                self.async_next_page(item)
-                to_exit = False
+    def img_multiple(self, widget):
+        """Enable multi-selection"""
+        widget.hide()
+        self.widget('btn-single').show()
+        self.widget('multiple-box').show()
+        self.widget('multiple-buttons').show()
+        self.multiple = True
+        self.update_btn_import()
 
+    def img_single(self, widget):
+        """Enable single-selection"""
+        widget.hide()
+        self.widget('btn-multiple').show()
+        self.widget('multiple-box').hide()
+        self.widget('multiple-buttons').hide()
+        is_selected = bool(list(self.results.get_selected_items()))
+        self.pool.clear()
+        self.multiple = False
+        self.update_btn_import()
+
+    def img_add(self, widget=None):
+        """Add an item from the search to the multi-pool"""
+        self.pool.add(self.results.get_selected_items())
+        self.update_btn_import()
+
+    def img_remove(self, widget=None):
+        """Remove any selected items from the multi-pool"""
+        for item in self.pool.get_selected_items():
+            self.pool.remove_item(item)
+        self.update_btn_import()
+
+    def update_btn_import(self):
+        """Set the import button to enabled or disabled"""
+        enabled = False
+        if self.multiple:
+            enabled = bool(list(self.pool))
+        else:
+            enabled = bool(list(self.results.get_selected_items()))
+        self.widget('btn-import').set_sensitive(enabled)
+
+    def result_activate(self, widget=None):
+        """Search results double click"""
+        if self.multiple:
+            self.img_add()
+        else:
+            self.img_import()
+
+    def img_import(self, widget=None):
+        """Apply the selected image and quit"""
+        items = []
+        if not self.multiple:
+            items.extend(self.results.get_selected_items())
+        else:
+            items.extend([item for item,*_ in self.pool])
+
+        to_exit = True
+        for item in items:
+            self.select_func(item.get_file())
+            # XXX This pagination control is not good. Replace it with normal controls.
+            #elif isinstance(item, RemotePage):
         if to_exit:
             self.exit()
 
@@ -124,7 +173,7 @@ class ImporterWindow(Window):
         """Remote search activation"""
         query = widget.get_text()
         if len(query) > 2:
-            self.results.clear()
+            self.search_clear()
             self.search_started()
             self.async_search(query)
 
@@ -135,20 +184,23 @@ class ImporterWindow(Window):
             self.add_search_result(resource)
         self.search_finished()
 
-    @asyncme.run_or_none
-    def async_next_page(self, item):
-        for resource in item.get_next_page():
-            self.add_search_result(resource)
-        self.search_finished()
-
     @asyncme.mainloop_only
     def add_search_result(self, resource):
         """Adding things to Gtk must be done in mainloop"""
+        if isinstance(resource, RemotePage):
+            return self.set_next_page(resource)
+
         self.results.add_item(resource)
+
+    def search_clear(self, widget=None):
+        """Remove previous search"""
+        self.results.clear()
+        self.update_btn_import()
+        self.next_page_item = None
+        self.widget('btn-next-page').hide()
 
     def search_started(self):
         """Set widgets to stun"""
-        self.widget('apply-image').set_sensitive(False)
         self.widget('dl-search').set_sensitive(False)
         self.widget('dl-searching').start()
         self.widget('dl-searching').show()
@@ -159,7 +211,23 @@ class ImporterWindow(Window):
         self.widget('dl-search').set_sensitive(True)
         self.widget('dl-searching').hide()
         self.widget('dl-searching').stop()
-        self.widget('apply-image').set_sensitive(True)
+
+    def set_next_page(self, item):
+        self.next_page_item = item
+        self.widget('btn-next-page').show()
+
+    def show_next_page(self, widget=None):
+        item = self.next_page_item
+        if item:
+            self.search_clear()
+            self.search_started()
+            self.async_next_page(item)
+
+    @asyncme.run_or_none
+    def async_next_page(self, item):
+        for resource in item.get_next_page():
+            self.add_search_result(resource)
+        self.search_finished()
 
     def dialog(self, msg):
         self.widget('dialog_msg').set_label(msg)
@@ -227,20 +295,36 @@ class ImportClipart(inkex.EffectExtension):
     def import_from_file(self, filename):
         with open(filename, 'rb') as fhl:
             head = fhl.read(100)
-            container = inkex.Layer.new(os.path.basename(filename))
             if b'<?xml' in head or b'<svg' in head:
                 new_svg = load_svg(head + fhl.read())
                 # Add each object to the container
-                objs = self.import_svg(new_svg)
+                objs = list(self.import_svg(new_svg))
+
+                if len(objs) == 1 and isinstance(objs[0], inkex.Group):
+                    # Prevent too many groups, if item aready has one.
+                    container = objs[0]
+                else:
+                    # Make a new group to contain everything
+                    container = inkex.Group()
+                    for child in objs:
+                        container.append(child)
+
+                # Retain the original filename as a group label
+                container.label = os.path.basename(filename)
                 # Apply unit transformation to keep things the same sizes.
                 container.transform.add_scale(self.svg.unittouu(1.0) \
                     / new_svg.getroot().unittouu(1.0))
-            else:
-                objs = self.import_raster(filename, fhl)
 
-            for child in objs:
-                container.append(child)
+
+            else:
+                container = self.import_raster(filename, fhl)
+
             self.svg.get_current_layer().append(container)
+
+            # Make sure that none of the new content is a layer.
+            for child in container.descendants():
+                if isinstance(child, inkex.Group):
+                    child.set("inkscape:groupmode", None)
 
     def effect(self):
         def select_func(filename):
@@ -261,7 +345,7 @@ class ImportClipart(inkex.EffectExtension):
             node.label = os.path.basename(filename)
             node.set('xlink:href', 'data:{};base64,{}'.format(
                 file_type, encodebytes(handle.read()).decode('ascii')))
-            yield node
+            return node
 
     @staticmethod
     def get_type(path, header):

@@ -48,7 +48,7 @@ class Reactome(RemoteSource):
                 yield {
                     'id': entry['dbId'],
                     'name': TAG_REX.sub('', entry['name']),
-                    'author': 'Reactome/'+entry['iconDesignerName'],
+                    'author': 'Reactome/'+entry.get('iconDesignerName', None),
                     'summary': TAG_REX.sub('', entry['summation']),
                     'created': None, # No data
                     'popularity': 0, # No data

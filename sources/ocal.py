@@ -15,6 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import sys
 import json
 import logging
 
@@ -40,7 +41,7 @@ class OpenClipartFile(RemoteFile):
                     return self.remote.to_local_file(data["image"]["url"])
                 except Exception:
                     continue
-        logging.error("Couldn't load svg from {}".format(self.info["file"]))
+        logging.error("Couldn't load svg from %s", self.info["file"])
 
 
 class OpenClipart(RemoteSource):
@@ -57,6 +58,7 @@ class OpenClipart(RemoteSource):
             if div.a and div.a.img:
                 link = urljoin(self.base_url, div.a.get("href"))
                 img = urljoin(self.base_url, div.a.img.get("src"))
+
                 yield {
                     "file": link,  # Not the actual file yet (see above)
                     "name": div.a.img.get("alt"),
@@ -75,4 +77,17 @@ class OpenClipart(RemoteSource):
 
     def _search(self, **params):
         response = self.session.get(self.base_url, params=params)
-        return self.html_search(response)
+        items = []
+        next_page = None
+        for item in self.html_search(response):
+            if callable(item):
+                next_page = item
+            else:
+                items.append(item)
+        # Often ocal will have empty pages, weirdly.
+        if not items and next_page:
+            return next_page()
+        # None empty page, return all
+        if next_page:
+            items.append(next_page)
+        return items
