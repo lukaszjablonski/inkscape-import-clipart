@@ -32,6 +32,8 @@ license_mapping = {
     "ASL": "asl",
     "nbsd": "bsd",
     "GPLv2": "gpl-2",
+    "GPLv3": "gpl-3",
+    "AGPLv3": "agpl-3",
     "MIT": "mit",
 }
 
@@ -57,7 +59,7 @@ class InkscapeWebsite(RemoteSource):
                 "id": item["id"],
                 "name": item["name"],
                 "author": item["author"],
-                "license": license_mapping[item["license"]],
+                "license": license_mapping.get(item["license"], item["license"].lower()),
                 "summary": item["summary"],
                 "thumbnail": item["icon"] or item["links"]["file"],
                 "created": item["dates"]["created"],
