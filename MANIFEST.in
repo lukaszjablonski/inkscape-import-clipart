@@ -1,7 +1,7 @@
-include import_clipart.ui
-include import_clipart.py
-include import_clipart.inx
-include import_clipart.svg
+include import_web_image.ui
+include import_web_image.py
+include import_web_image.inx
+include import_web_image.svg
 include import_sources.py
 include README.md
 include LICENSE.txt

@@ -21,7 +21,7 @@ Import clipart extension (GUI)
 """
 
 __version__ = '1.0'
-__pkgname__ = 'inkscape-clipart-importer'
+__pkgname__ = 'inkscape-import-web-image'
 
 import os
 import sys
@@ -244,7 +244,7 @@ class App(GtkApp):
     app_name = 'inkscape-import-clipart'
     windows = [ImporterWindow]
 
-class ImportClipart(inkex.EffectExtension):
+class ImportWebImage(inkex.EffectExtension):
     """Import an svg from the internet"""
     selected_filename = None
 
@@ -366,4 +366,4 @@ class ImportClipart(inkex.EffectExtension):
 
 
 if __name__ == '__main__':
-    ImportClipart().run()
+    ImportWebImage().run()
