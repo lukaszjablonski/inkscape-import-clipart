@@ -5,11 +5,6 @@
    viewBox="0 0 33.866666 33.866668"
    version="1.1"
    id="svg67608"
-   inkscape:version="1.2-alpha (38bb57965d, 2022-02-22, custom)"
-   sodipodi:docname="import_clipart.svg"
-   inkscape:export-filename="/home/doctormo/Projects/inkscape/extensions/import-clipart/import_clipart.png"
-   inkscape:export-xdpi="136.533"
-   inkscape:export-ydpi="136.533"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -19,7 +14,7 @@
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:dc="http://purl.org/dc/elements/1.1/">
   <title
-     id="title1089">Import Clipart Icon</title>
+     id="title1089">Import Web Image Icon</title>
   <defs
      id="defs67602">
     <clipPath
@@ -93,7 +88,7 @@
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
         <cc:license
            rdf:resource="http://creativecommons.org/licenses/by-sa/4.0/" />
-        <dc:title>Import Clipart Icon</dc:title>
+        <dc:title>Import Web Image Icon</dc:title>
         <dc:creator>
           <cc:Agent>
             <dc:title>Olibia Tsati</dc:title>

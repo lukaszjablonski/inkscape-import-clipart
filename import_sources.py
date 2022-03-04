@@ -16,7 +16,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 """
-Base module for all import clipart search source modules.
+Base module for all import web search source modules.
 """
 
 import re
@@ -33,111 +33,98 @@ from cachecontrol.heuristics import ExpiresAfter
 from inkex.command import CommandNotFound, ProgramRunError, call
 from collections import defaultdict
 
-licenses = {
+LICENSE_ICONS = os.path.join(os.path.dirname(__file__), 'licenses')
+
+LICENSES = {
     "cc-0": {
         "name": "CC0",
         "modules": ["nocopyright"],
         "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "overlay": "cc0.svg",
     },
     "cc-by-3.0": {
         "name": "CC-BY 3.0 Unported",
         "modules": ["by"],
         "url": "https://creativecommons.org/licenses/by/3.0/",
+        "overlay": "cc-by.svg",
     },
     "cc-by-4.0": {
         "name": "CC-BY 4.0 Unported",
         "modules": ["by"],
         "url": "https://creativecommons.org/licenses/by/4.0/",
+        "overlay": "cc-by.svg",
     },
     "cc-by-sa-4.0": {
         "name": "CC-BY SA 4.0",
         "modules": ["by", "sa"],
         "url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "overlay": "cc-by-sa.svg",
     },
     "cc-by-sa-3.0": {
         "name": "CC-BY SA 3.0",
         "modules": ["by", "sa"],
         "url": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "overlay": "cc-by-sa.svg",
     },
     "cc-by-nc-sa-4.0": {
         "name": "CC-BY NC SA 4.0",
         "modules": ["by", "sa", "nc"],
         "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "overlay": "cc-by-nc-sa.svg",
     },
     "cc-by-nc-sa-3.0": {
         "name": "CC-BY NC SA 3.0",
         "modules": ["by", "sa", "nc"],
         "url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+        "overlay": "cc-by-nc-sa.svg",
     },
     "cc-by-nc-3.0": {
         "name": "CC-BY NC 3.0",
         "modules": ["by", "nc"],
         "url": "https://creativecommons.org/licenses/by-nc/3.0/",
+        "overlay": "cc-by-nc.svg",
     },
     "cc-by-nd-3.0": {
         "name": "CC-BY ND 3.0",
         "modules": ["by", "nd"],
         "url": "https://creativecommons.org/licenses/by-nd/3.0/",
+        "overlay": "cc-by-nd.svg",
+    },
+    "gpl-2": {
+        "name": "GPLv2",
+        "modules": ["retaincopyrightnotice", "sa"],
+        "url": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt",
+        "overlay": "gpl.svg",
+    },
+    "gpl-3": {
+        "name": "GPLv3",
+        "modules": ["retaincopyrightnotice", "sa"],
+        "url": "https://www.gnu.org/licenses/gpl-3.0.txt",
+        "overlay": "gpl.svg",
+    },
+    "agpl-3": {
+        "name": "AGPLv3",
+        "modules": ["retaincopyrightnotice", "sa"],
+        "url": "https://www.gnu.org/licenses/agpl-3.0.txt",
+        "overlay": "gpl.svg",
     },
     "mit": {
         "name": "MIT",
         "modules": ["retaincopyrightnotice"],
         "url": "https://mit-license.org/",
-    },
-    "gpl-2": {
-        "name": "GPLv2",
-        "modules": ["retaincopyrightnotice", "statechanges", "sa"],
-        "url": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt",
+        "overlay": "mit.svg",
     },
     "asl": {
         "name": "Apache License",
-        "modules": ["retaincopyrightnotice", "statechanges"],
+        "modules": ["retaincopyrightnotice"],
         "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
-    },
-    "gpl-3": {
-        "name": "GPLv3",
-        "modules": ["retaincopyrightnotice", "statechanges", "sa"],
-        "url": "https://www.gnu.org/licenses/gpl-3.0.txt",
+        "overlay": "asl.svg",
     },
     "bsd": {
         "name": "BSD",
         "modules": ["retaincopyrightnotice", "noendorsement"],
         "url": "https://opensource.org/licenses/BSD-3-Clause",
-    },
-}
-
-licenseModules = {
-    "nocopyright": {
-        "name": "No restrictions",
-        "desc": "Public domain, no attribution or credit necessary but appreciated.",
-    },
-    "by": {
-        "name": "Attribution",
-        "desc": "Give credit to {} in the figure caption or acknowledgements, link the license and indicate changes. Do not suggest endorsement.",
-    },
-    "sa": {
-        "name": "Share Alike",
-        "desc": "Any modifications must also be licensed under the same or a compatible license.",
-    },
-    "retaincopyrightnotice": {
-        "name": "Retain Copyright Notice",
-        "desc": "Include COPYRIGHT 2020 AUTHORNAME and include license file",
-    },
-    "noendorsement": {
-        "name": "No endorsement",
-        "desc": "Do not promote or endorse products using the name of the copyright holder",
-    },
-    "statechanges": {
-        "name": "State changes",
-        "desc": "State all changes made to the illustration.",
-    },
-    "nc": {
-        "name": "Non commercial",
-        "desc": " Do not use the material for commercial purposes.",
-    },
-    "nd": {
-        "name": "No derivatives",
-        "desc": "If you remix, transform, or build upon the material, you may not distribute the modified material.",
+        "overlay": "bsd.svg",
     },
 }
 
@@ -178,37 +165,17 @@ class RemoteFile:
     def license(self):
         return self.info["license"]
 
-    @property
-    def licenseurl(self):
-        try:
-            return licenses[self.info["license"]]["url"]
-        except KeyError:
-            return self.info["descriptionurl"]
+    def get_overlay(self):
+        return self.license_info["overlay"]
 
     @property
-    def licensetext(self):
-        text = ""
-        if self.info["license"] in licenses.keys():
-            text += (
-                '<span size="x-large"><b>Licensed under '
-                + licenses[self.info["license"]]["name"]
-                + " </b></span>\n"
-            )
-            text += (
-                '<span size="large">Created by ' + self.info["author"] + "</span>\n\n"
-            )
-            text += "The following conditions apply:\n\n"
-            for mod in licenses[self.info["license"]]["modules"]:
-                text += (
-                    '<span size="large"><b>'
-                    + licenseModules[mod]["name"]
-                    + "</b></span>"
-                    + "\n"
-                )
-                text += licenseModules[mod]["desc"].format(self.info["author"]) + "\n\n"
-        else:
-            text = "Non-standard license, refer to original source for terms of usage"
-        return text
+    def license_info(self):
+        return LICENSES.get(self.license, {
+           "name": "Unknown",
+           "url": self.info.get("descriptionurl", ""),
+           "modules": [],
+           "overlay": "unknown.svg",
+        })
 
     @property
     def author(self):

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2021 Martin Owens <doctormo@gmail.com>
+# Copyright 2022 Simon Duerr <dev@simonduerr.eu>
 #
 # This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -17,7 +18,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 """
-Import clipart extension (GUI)
+Import images from the internet, inkscape extension (GUI)
 """
 
 __version__ = '1.0'
@@ -33,18 +34,28 @@ from appdirs import user_cache_dir
 
 import inkex
 from inkex import Style
-from inkex.gui import GtkApp, Window, PixmapManager, IconView, asyncme
+from inkex.gui import GtkApp, Window, IconView, asyncme
+from inkex.gui.pixmap import PixmapManager, SizeFilter, PadFilter, OverlayFilter
 from inkex.elements import (
     load_svg, Image, Defs, NamedView, Metadata,
     SvgDocumentElement, StyleElement
 )
+from gi.repository import Gtk
 
 from import_sources import RemoteSource, RemoteFile, RemotePage
 
-CACHE_DIR = user_cache_dir('inkscape-import-clipart', 'Inkscape')
+SOURCES = os.path.join(os.path.dirname(__file__), 'sources')
+LICENSES = os.path.join(os.path.dirname(__file__), 'licenses')
+CACHE_DIR = user_cache_dir('inkscape-import-web-image', 'Inkscape')
 
-class CachedPixmaps(PixmapManager):
-    pixmap_dir = CACHE_DIR
+class LicenseOverlay(OverlayFilter):
+    pixmaps = PixmapManager(LICENSES)
+
+    def get_overlay(self, item=None, manager=None):
+        if item is None: # Default image
+            return None
+        return self.pixmaps.get(item.get_overlay())
+
 
 class ResultsIconView(IconView):
     """The search results shown as icons"""
@@ -70,35 +81,53 @@ class ResultsIconView(IconView):
 
 class ImporterWindow(Window):
     """The window that is in the glade file"""
-    name = 'import_clipart'
+    name = 'import_web_image'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.widget('dl-searching').hide()
 
-        self.pixmaps = CachedPixmaps('pixmaps', size=150, load_size=(300,300))
-
         # Add each of the source services from their plug-in modules
         self.source = self.widget('service_list')
         self.source_model = self.source.get_model()
         self.source_model.clear()
 
-        RemoteSource.load(os.path.join(os.path.dirname(__file__), 'sources'))
+        RemoteSource.load(SOURCES)
+        pix = PixmapManager(SOURCES, size=150)
         for x, (key, source) in enumerate(RemoteSource.sources.items()):
             # We add them in GdkPixbuf, string, string format (see glade file)
-            self.source_model.append([self.pixmaps.get(source.icon), source.name, key])
+            self.source_model.append([pix.get(source.icon), source.name, key])
             if source.is_default:
                 self.source.set_active(x)
 
+        pixmaps = PixmapManager(CACHE_DIR, filters=[
+            SizeFilter(size=150),
+            PadFilter(size=(0, 150)),
+            LicenseOverlay(position=(0.5, 1))
+        ])
         self.select_func = self.gapp.kwargs['select']
-        self.results = ResultsIconView(self.widget('results'), self.pixmaps)
-        self.pool = ResultsIconView(self.widget('pool'), self.pixmaps)
+        self.results = ResultsIconView(self.widget('results'), pixmaps)
+        self.pool = ResultsIconView(self.widget('pool'), pixmaps)
         self.multiple = False
 
+        self.widget("perm-nocopyright").set_message_type(Gtk.MessageType.WARNING)
+
     def select_image(self, widget):
+        """Callback when clicking on an image in the result list"""
+        for item_path in self.widget("results").get_selected_items():
+            item_iter = self.results._model.get_iter(item_path)
+            item = self.results._model[item_iter][0]
+            self.show_license(item)
         self.update_btn_import()
-        pass # TODO: We may want to do interesting things here, like license warnings on select.
+
+    def show_license(self, item):
+        """Display the current item's license information"""
+        self.widget("perms").foreach(lambda w: w.hide())
+        info = item.license_info
+        for mod in info['modules']:
+            sys.stderr.write(f"MOD: {mod}")
+            self.widget("perm-" + mod).show()
 
     def get_selected_source(self):
         """Return the selected source class"""
@@ -229,19 +258,11 @@ class ImporterWindow(Window):
             self.add_search_result(resource)
         self.search_finished()
 
-    def dialog(self, msg):
-        self.widget('dialog_msg').set_label(msg)
-        self.widget('dialog').set_transient_for(self.window)
-        self.widget('dialog').show_all()
-
-    def close_dialog(self, widget):
-        self.widget('dialog_msg').set_label('')
-        self.widget('dialog').hide()
 
 class App(GtkApp):
     """Load the inkscape extensions glade file and attach to window"""
     glade_dir = os.path.join(os.path.dirname(__file__))
-    app_name = 'inkscape-import-clipart'
+    app_name = 'inkscape-import-web-image'
     windows = [ImporterWindow]
 
 class ImportWebImage(inkex.EffectExtension):

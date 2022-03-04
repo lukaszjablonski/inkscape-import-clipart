@@ -1,4 +1,4 @@
-# Clipart Importer
+# Import Web Image (inkscape extension)
 
 This Inkscape extension allows inkscape users to import graphics into Inkscape from a selection of internet sources.
 
