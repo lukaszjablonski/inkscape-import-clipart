@@ -32,15 +32,12 @@ class Reactome(RemoteSource):
     icon_url = "https://reactome.org/icon/{stId}.png"
     all_licence = "cc-by-sa-4.0"
 
-    # Currently this extension has stopped working.
-    is_enabled = False
-
     def search(self, query):
         params = {
             "query": query,
             "types": "Icon",
             "cluster": "true",
-            "Start row": 1,
+            "Start row": 0,
             "rows": 100,
         }
         response = self.session.get(self.search_url, params=params).json()
@@ -52,7 +49,7 @@ class Reactome(RemoteSource):
                     'id': entry['dbId'],
                     'name': TAG_REX.sub('', entry['name']),
                     'author': 'Reactome/'+entry.get('iconDesignerName', "Unknown"),
-                    'summary': TAG_REX.sub('', entry['summation']),
+                    'summary': TAG_REX.sub('', entry.get('summation', '')),
                     'created': None, # No data
                     'popularity': 0, # No data
                     'thumbnail': self.icon_url.format(**entry),

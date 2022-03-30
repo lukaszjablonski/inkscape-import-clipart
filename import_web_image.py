@@ -27,6 +27,8 @@ __pkgname__ = 'inkscape-import-web-image'
 import os
 import sys
 import logging
+import warnings
+warnings.filterwarnings("ignore")
 
 from collections import defaultdict
 from base64 import encodebytes
@@ -128,7 +130,6 @@ class ImporterWindow(Window):
         self.widget("perms").foreach(lambda w: w.hide())
         info = item.license_info
         for mod in info['modules']:
-            sys.stderr.write(f"MOD: {mod}")
             self.widget("perm-" + mod).show()
 
     def get_selected_source(self):
@@ -316,6 +317,8 @@ class ImportWebImage(inkex.EffectExtension):
                 yield child
 
     def import_from_file(self, filename):
+        if not filename or not os.path.isfile(filename):
+            return
         with open(filename, 'rb') as fhl:
             head = fhl.read(100)
             if b'<?xml' in head or b'<svg' in head:
