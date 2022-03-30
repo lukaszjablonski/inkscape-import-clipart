@@ -32,6 +32,9 @@ class Reactome(RemoteSource):
     icon_url = "https://reactome.org/icon/{stId}.png"
     all_licence = "cc-by-sa-4.0"
 
+    # Currently this extension has stopped working.
+    is_enabled = False
+
     def search(self, query):
         params = {
             "query": query,

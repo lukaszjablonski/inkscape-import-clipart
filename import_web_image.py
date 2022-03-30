@@ -96,6 +96,8 @@ class ImporterWindow(Window):
         RemoteSource.load(SOURCES)
         pix = PixmapManager(SOURCES, size=150)
         for x, (key, source) in enumerate(RemoteSource.sources.items()):
+            if not source.is_enabled:
+                continue
             # We add them in GdkPixbuf, string, string format (see glade file)
             self.source_model.append([pix.get(source.icon), source.name, key])
             if source.is_default:
