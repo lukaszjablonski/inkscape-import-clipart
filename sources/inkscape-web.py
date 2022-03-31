@@ -47,8 +47,14 @@ class InkscapeWebsite(RemoteSource):
 
     def search(self, query):
         """Ask the inkscape website for some artwork"""
-        response = self.session.get(self.base_url, params={"q": query})
-        for item in response.json()["items"]:
+        items = []
+        try:
+            response = self.session.get(self.base_url, params={"q": query})
+            items = response.json()["items"]
+        except Exception:
+            pass
+
+        for item in items:
             if "svg" not in item["type"]:
                 continue
             if (

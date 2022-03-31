@@ -76,7 +76,11 @@ class OpenClipart(RemoteSource):
         return self._search(query=query)
 
     def _search(self, **params):
-        response = self.session.get(self.base_url, params=params)
+        try:
+            response = self.session.get(self.base_url, params=params)
+        except Exception:
+            return []
+
         items = []
         next_page = None
         for item in self.html_search(response):

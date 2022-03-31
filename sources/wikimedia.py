@@ -43,10 +43,16 @@ class Wikimedia(RemoteSource):
             "iiurlheight": 180,
             "wbetterms": "label",
         }
-        response = self.session.get(self.base_url, params=params).json()
-        if "error" in response:
-            raise IOError(response["error"]["info"])
-        for item in response["query"]["pages"].values():
+        pages = []
+        try:
+            response = self.session.get(self.base_url, params=params).json()
+            if "error" in response:
+                raise IOError(response["error"]["info"])
+            pages = response["query"]["pages"].values()
+        except:
+            pass
+
+        for item in pages:
             img = item["imageinfo"][0]
             # get standard licenses
             # for non standard licenses we have to get the ShortName and provide the url to the resource

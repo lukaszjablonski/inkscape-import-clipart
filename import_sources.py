@@ -253,9 +253,17 @@ class RemoteSource:
         """Get a remote url and turn it into a local file"""
         filepath = os.path.join(self.cache_dir, url.split("/")[-1])
         headers = {"User-Agent": "Inkscape"}
-        remote = self.session.get(
-            url, headers=headers
-        )  # needs UserAgent otherwise many 403 or 429 for wiki commons
+        try:
+            remote = self.session.get(
+                url, headers=headers
+            )  # needs UserAgent otherwise many 403 or 429 for wiki commons
+        except requests.exceptions.RequestException as err:
+            return None
+        except ConnectionError as err:
+            return None
+        except requests.exceptions.RequestsWarning:
+            pass
+
         if remote and remote.status_code == 200:
             with open(filepath, "wb") as fhl:
                 # If we don't have data, return None (instead of empty file)

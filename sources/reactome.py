@@ -40,7 +40,12 @@ class Reactome(RemoteSource):
             "Start row": 0,
             "rows": 100,
         }
-        response = self.session.get(self.search_url, params=params).json()
+        response = {}
+        try:
+            response = self.session.get(self.search_url, params=params).json()
+        except Exception:
+            pass
+
         if 'messages' in response and 'No entries' in response['messages'][0]:
             return
         for cats in response.get('results', []):

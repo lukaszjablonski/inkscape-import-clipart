@@ -57,24 +57,32 @@ class Bioicons(RemoteSource):
             ),
         )
         # check if local db is up to date with Last Modified header
-        response = requests.head(self.db_url)
+        try:
+            response = requests.head(self.db_url)
+        except Exception:
+            response = None
 
-        if not os.path.isfile(os.path.join(self.cache_dir, "icons.json")):
+        self._json = os.path.join(self.cache_dir, "icons.json")
+        if not os.path.isfile(self._json):
             last_modified = 0
         else:
-            last_modified = os.path.getmtime(os.path.join(self.cache_dir, "icons.json"))
+            last_modified = os.path.getmtime(self._json)
 
-        last_update = datetime.strptime(
-            response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S GMT"
-        ).timestamp()
-        # if icon db was modified download new database
-        if last_modified < last_update:
-            self.to_local_file(self.db_url)
+        if response is not None:
+            last_update = datetime.strptime(
+                response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S GMT"
+            ).timestamp()
+            # if icon db was modified download new database
+            if last_modified < last_update:
+                self.to_local_file(self.db_url)
 
     def search(self, query):
-        with open(os.path.join(self.cache_dir, "icons.json"), "r") as f:
-            db = json.load(f)
-        results = local_search(query, db)
+        results = []
+        if os.path.isfile(self._json):
+            with open(self._json, "r") as f:
+                db = json.load(f)
+            results = local_search(query, db)
+
         for item in results:
             yield {
                 "id": item["name"],
