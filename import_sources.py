@@ -228,13 +228,17 @@ class RemoteSource:
     def __init__(self, cache_dir):
         self.session = requests.session()
         self.cache_dir = cache_dir
-        self.session.mount(
-            "https://",
-            CacheControlAdapter(
-                cache=FileCache(cache_dir),
-                heuristic=ExpiresAfter(days=5),
-            ),
-        )
+        try:
+            self.session.mount(
+                "https://",
+                CacheControlAdapter(
+                    cache=FileCache(cache_dir),
+                    heuristic=ExpiresAfter(days=5),
+                ),
+            )
+        except ImportError:
+            # This happens when python-lockfile is missing, disable cachecontrol
+            pass
 
     def __del__(self):
         self.session.close()
