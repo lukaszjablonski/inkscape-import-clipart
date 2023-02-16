@@ -33,7 +33,7 @@ from cachecontrol.heuristics import ExpiresAfter
 from inkex.command import CommandNotFound, ProgramRunError, call
 from collections import defaultdict
 
-LICENSE_ICONS = os.path.join(os.path.dirname(__file__), 'licenses')
+LICENSE_ICONS = os.path.join(os.path.dirname(__file__), "licenses")
 
 LICENSES = {
     "cc-0": {
@@ -170,12 +170,15 @@ class RemoteFile:
 
     @property
     def license_info(self):
-        return LICENSES.get(self.license, {
-           "name": "Unknown",
-           "url": self.info.get("descriptionurl", ""),
-           "modules": [],
-           "overlay": "unknown.svg",
-        })
+        return LICENSES.get(
+            self.license,
+            {
+                "name": "Unknown",
+                "url": self.info.get("descriptionurl", ""),
+                "modules": [],
+                "overlay": "unknown.svg",
+            },
+        )
 
     @property
     def author(self):
