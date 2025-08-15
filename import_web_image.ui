@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!--
 
 Copyright (C) Martin Owens
 
@@ -19,33 +19,12 @@ You should have received a copy of the GNU General Public License
 along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<interface domain="inkscape-import-web-image">
+<interface domain="org.inkscape.import-web-image">
   <requires lib="gtk" version="4.0"/>
   <!-- interface-license-type gplv3 -->
   <!-- interface-name Inkscape Import Web Image -->
   <!-- interface-description Download svg files from around the internet -->
   <!-- interface-copyright Martin Owens -->
-  <object class="GtkImage" id="image1">
-    <property name="icon-name">gtk-remove</property>
-  </object>
-  <object class="GtkImage" id="image2">
-    <property name="icon-name">gtk-cancel</property>
-  </object>
-  <object class="GtkImage" id="image3">
-    <property name="icon-name">gtk-go-down</property>
-  </object>
-  <object class="GtkImage" id="image4">
-    <property name="icon-name">gtk-add</property>
-  </object>
-  <object class="GtkImage" id="image5">
-    <property name="icon-name">gtk-apply</property>
-  </object>
-  <object class="GtkImage" id="image6">
-    <property name="icon-name">gtk-go-up</property>
-  </object>
-  <object class="GtkImage" id="image7">
-    <property name="icon-name">gtk-go-forward</property>
-  </object>
   <object class="GtkListStore" id="service_items">
     <columns>
       <!-- column-name icon -->
@@ -55,20 +34,12 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
       <!-- column-name key -->
       <column type="gchararray"/>
     </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">import_web_image.svg</col>
-        <col id="1" translatable="yes">Test Icon</col>
-        <col id="2" translatable="yes">key</col>
-      </row>
-    </data>
   </object>
   <object class="GtkWindow" id="import_web_image">
     <property name="title" translatable="yes">Import Web Image</property>
-    <property name="window-position">center</property>
     <property name="default-width">600</property>
     <property name="default-height">600</property>
-    <property name="icon">import_web_image.svg</property>
+    <property name="icon-name">import_web_image</property>
     <property name="child">
       <object class="GtkCenterBox">
         <property name="orientation">vertical</property>
@@ -83,7 +54,6 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                 <child>
                   <object class="GtkSpinner" id="dl-searching">
                     <property name="name">searcher</property>
-                    <property name="events"></property>
                     <property name="margin-top">4</property>
                     <property name="margin-bottom">4</property>
                   </object>
@@ -93,10 +63,7 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                     <property name="hexpand">True</property>
                     <property name="focusable">True</property>
                     <property name="valign">center</property>
-                    <property name="primary-icon-name">edit-find-symbolic</property>
-                    <property name="primary-icon-activatable">False</property>
-                    <property name="primary-icon-sensitive">False</property>
-                    <signal name="activate" handler="search" swapped="no"/>
+                    <signal name="activate" handler="search"/>
                   </object>
                 </child>
                 <child>
@@ -107,11 +74,7 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                     <property name="halign">start</property>
                     <property name="valign">center</property>
                     <property name="margin-end">10</property>
-                    <property name="image">image7</property>
-                    <property name="image-position">right</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="show_next_page" swapped="no"/>
-                    <signal name="clicked" handler="show_next_page" swapped="no"/>
+                    <signal name="clicked" handler="show_next_page"/>
                   </object>
                 </child>
                 <child>
@@ -119,12 +82,11 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                     <property name="margin-start">6</property>
                     <property name="model">service_items</property>
                     <property name="id-column">2</property>
-                    <signal name="changed" handler="search_clear" swapped="no"/>
+                    <signal name="changed" handler="search_clear"/>
                     <child>
                       <object class="GtkCellRendererPixbuf">
                         <property name="width">48</property>
                         <property name="height">48</property>
-                        <property name="stock_size">3</property>
                       </object>
                       <attributes>
                         <attribute name="pixbuf">0</attribute>
@@ -154,48 +116,31 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                     <property name="margin-end">6</property>
                     <property name="margin-top">6</property>
                     <property name="margin-bottom">6</property>
-                    <signal name="item-activated" handler="result_activate" swapped="no"/>
-                    <signal name="selection-changed" handler="select_image" swapped="no"/>
+                    <signal name="item-activated" handler="result_activate"/>
+                    <signal name="selection-changed" handler="select_image"/>
                   </object>
                 </property>
               </object>
             </child>
             <child>
-              <object class="GtkGrid" id="perms">
+              <object class="GtkBox" id="perms">
                 <property name="name">license_info</property>
                 <property name="margin-top">4</property>
-                <property name="row-spacing">3</property>
+                <property name="margin-start">16</property>
+                <property name="margin-end">16</property>
+                <property name="spacing">3</property>
+                <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkInfoBar" id="perm-nocopyright">
                     <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
+                    <property name="visible">False</property>
+                    <child>
                       <object class="GtkBox">
                         <property name="spacing">16</property>
                         <child>
                           <object class="GtkImage">
                             <property name="file">licenses/perm-pd.svg</property>
-                            <property name="icon_size">6</property>
+                            <property name="icon_size">large</property>
                           </object>
                         </child>
                         <child>
@@ -205,352 +150,21 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                             <property name="xalign">0</property>
                           </object>
                         </child>
-                        <child>
-                          <placeholder/>
-                        </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
                     </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">0</property>
-                      <property name="column-span">2</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkInfoBar" id="perm-sa">
-                    <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
-                      <object class="GtkBox">
-                        <property name="spacing">16</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="file">licenses/perm-sa.svg</property>
-                            <property name="icon_size">6</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="label" translatable="yes">Any modifications must also be licensed under the same or a compatible license.</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">2</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkInfoBar" id="perm-nc">
-                    <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
-                      <object class="GtkBox">
-                        <property name="spacing">16</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="file">licenses/perm-nc.svg</property>
-                            <property name="icon_size">6</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="label" translatable="yes">Do not use the material for commercial purposes.</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">3</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkInfoBar" id="perm-nd">
-                    <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
-                      <object class="GtkBox">
-                        <property name="spacing">16</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="file">licenses/perm-nd.svg</property>
-                            <property name="icon_size">6</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="label" translatable="yes">If you remix, transform, or build upon the material, you may not distribute the modified material.</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">4</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkInfoBar" id="perm-ne">
-                    <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
-                      <object class="GtkBox">
-                        <property name="spacing">16</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="file">licenses/perm-ne.svg</property>
-                            <property name="icon_size">6</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="label" translatable="yes">Do not promote or endorse products using the name of the copyright holder.</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">5</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkInfoBar" id="perm-retaincopyrightnotice">
-                    <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
-                      <object class="GtkBox">
-                        <property name="spacing">16</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="file">licenses/perm-notice.svg</property>
-                            <property name="icon_size">6</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="label" translatable="yes">Include COPYRIGHT YEAR AUTHORNAME and include the software license file.</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">6</property>
-                    </layout>
                   </object>
                 </child>
                 <child>
                   <object class="GtkInfoBar" id="perm-by">
                     <property name="message-type">error</property>
-                    <child internal-child="action_area">
-                      <object class="GtkButtonBox">
-                        <property name="focusable">False</property>
-                        <property name="spacing">6</property>
-                        <property name="layout-style">end</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child internal-child="content_area">
+                    <property name="visible">False</property>
+                    <child>
                       <object class="GtkBox">
                         <property name="spacing">16</property>
                         <child>
                           <object class="GtkImage">
                             <property name="file">licenses/perm-by.svg</property>
-                            <property name="icon_size">6</property>
+                            <property name="icon_size">large</property>
                           </object>
                         </child>
                         <child>
@@ -560,42 +174,129 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                             <property name="xalign">0</property>
                           </object>
                         </child>
-                        <child>
-                          <placeholder/>
-                        </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
                     </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <layout>
-                      <property name="column">0</property>
-                      <property name="row">1</property>
-                    </layout>
                   </object>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkInfoBar" id="perm-sa">
+                    <property name="message-type">error</property>
+                    <property name="visible">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">16</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="file">licenses/perm-sa.svg</property>
+                            <property name="icon_size">large</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Any modifications must also be licensed under the same or a compatible license.</property>
+                            <property name="wrap">True</property>
+                            <property name="xalign">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkInfoBar" id="perm-nc">
+                    <property name="message-type">error</property>
+                    <property name="visible">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">16</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="file">licenses/perm-nc.svg</property>
+                            <property name="icon_size">large</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Do not use the material for commercial purposes.</property>
+                            <property name="wrap">True</property>
+                            <property name="xalign">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkInfoBar" id="perm-nd">
+                    <property name="message-type">error</property>
+                    <property name="visible">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">16</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="file">licenses/perm-nd.svg</property>
+                            <property name="icon_size">large</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">If you remix, transform, or build upon the material, you may not distribute the modified material.</property>
+                            <property name="wrap">True</property>
+                            <property name="xalign">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkInfoBar" id="perm-ne">
+                    <property name="message-type">error</property>
+                    <property name="visible">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">16</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="file">licenses/perm-ne.svg</property>
+                            <property name="icon_size">large</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Do not promote or endorse products using the name of the copyright holder.</property>
+                            <property name="wrap">True</property>
+                            <property name="xalign">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
                 </child>
                 <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
+                  <object class="GtkInfoBar" id="perm-retaincopyrightnotice">
+                    <property name="message-type">error</property>
+                    <property name="visible">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">16</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="file">licenses/perm-notice.svg</property>
+                            <property name="icon_size">large</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Include COPYRIGHT YEAR AUTHORNAME and include the software license file.</property>
+                            <property name="wrap">True</property>
+                            <property name="xalign">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
                 </child>
               </object>
             </child>
@@ -605,46 +306,61 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
           <object class="GtkBox">
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkButtonBox" id="multiple-buttons">
+              <object class="GtkBox" id="multiple-buttons">
                 <property name="focusable">False</property>
-                <property name="margin-start">4</property>
-                <property name="margin-end">4</property>
                 <property name="margin-top">4</property>
                 <property name="margin-bottom">4</property>
                 <property name="spacing">2</property>
+                <property name="visible">False</property>
+                <property name="halign">center</property>
+                <property name="hexpand">True</property>
+                <property name="homogeneous">True</property>
                 <property name="baseline-position">bottom</property>
-                <property name="layout-style">center</property>
                 <child>
                   <object class="GtkButton">
-                    <property name="label" translatable="yes">Remove</property>
                     <property name="focusable">True</property>
                     <property name="receives-default">True</property>
-                    <property name="image">image1</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="img_remove" swapped="no"/>
-                    <signal name="clicked" handler="img_remove" swapped="no"/>
+                    <signal name="clicked" handler="img_remove"/>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="halign">center</property>
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">delete-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Remove</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
                 </child>
                 <child>
                   <object class="GtkButton">
-                    <property name="label" translatable="yes">Add</property>
                     <property name="focusable">True</property>
                     <property name="receives-default">True</property>
-                    <property name="image">image4</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="img_add" swapped="no"/>
-                    <signal name="clicked" handler="img_add" swapped="no"/>
+                    <signal name="clicked" handler="img_add"/>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="halign">center</property>
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">gtk-add-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Add</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
                 </child>
               </object>
             </child>
@@ -653,6 +369,7 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
                 <property name="vexpand">True</property>
                 <property name="focusable">True</property>
                 <property name="has-frame">true</property>
+                <property name="visible">False</property>
                 <property name="child">
                   <object class="GtkIconView" id="pool">
                     <property name="focusable">True</property>
@@ -665,78 +382,108 @@ along with Inkscape Extensions Manager.  If not, see <http://www.gnu.org/license
               </object>
             </child>
             <child>
-              <object class="GtkButtonBox">
+              <object class="GtkBox">
                 <property name="focusable">False</property>
                 <property name="margin-start">4</property>
                 <property name="margin-end">4</property>
                 <property name="margin-top">4</property>
                 <property name="margin-bottom">4</property>
-                <property name="spacing">2</property>
-                <child type="center">
-                  <object class="GtkButton" id="btn-import">
-                    <property name="label">Import</property>
-                    <property name="focusable">True</property>
-                    <property name="receives-default">True</property>
-                    <property name="image">image5</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="img_import" swapped="no"/>
-                    <signal name="clicked" handler="img_import" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
                 <child>
                   <object class="GtkButton">
-                    <property name="label">Cancel</property>
                     <property name="focusable">True</property>
                     <property name="receives-default">True</property>
-                    <property name="image">image2</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="exit" swapped="no"/>
-                    <signal name="clicked" handler="exit" swapped="no"/>
+                    <property name="halign">start</property>
+                    <signal name="clicked" handler="close"/>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">gtk-cancel-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Cancel</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
                 </child>
                 <child>
                   <object class="GtkButton" id="btn-multiple">
-                    <property name="label">Multiple Images</property>
                     <property name="focusable">True</property>
                     <property name="receives-default">True</property>
-                    <property name="image">image6</property>
                     <property name="has-frame">false</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="img_multiple" swapped="no"/>
-                    <signal name="clicked" handler="img_multiple" swapped="no"/>
+                    <property name="halign">center</property>
+                    <property name="hexpand">True</property>
+                    <signal name="clicked" handler="img_multiple"/>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">go-up-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Multiple Images</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
                 </child>
                 <child>
                   <object class="GtkButton" id="btn-single">
-                    <property name="label">Single Image</property>
+                    <property name="visible">False</property>
                     <property name="focusable">True</property>
                     <property name="receives-default">True</property>
-                    <property name="image">image3</property>
                     <property name="has-frame">false</property>
-                    <property name="always-show-image">True</property>
-                    <signal name="activate" handler="img_single" swapped="no"/>
-                    <signal name="clicked" handler="img_single" swapped="no"/>
+                    <property name="halign">center</property>
+                    <property name="hexpand">True</property>
+                    <signal name="clicked" handler="img_single"/>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">go-down-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Single Image</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
-                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="btn-import">
+                    <property name="focusable">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="halign">end</property>
+                    <signal name="clicked" handler="img_import"/>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">3</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon-name">gtk-apply-symbolic</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Import</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
                 </child>
               </object>
             </child>
