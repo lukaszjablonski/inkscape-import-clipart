@@ -1,22 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2021 Martin Owens <doctormo@gmail.com>
 # Copyright 2022 Simon Duerr <dev@simonduerr.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>
-#
+
 """
 Import images from the internet, inkscape extension (GUI)
 """
@@ -102,17 +88,6 @@ class ImporterWindow(Window):
         # Add each of the source services from their plug-in modules
         self.source = self.widget("service_list")
         self.source_model = self.source.get_model()
-        self.source_model.clear()
-
-        RemoteSource.load(SOURCES)
-        pix = PixmapManager(SOURCES, size=150)
-        for x, (key, source) in enumerate(RemoteSource.sources.items()):
-            if not source.is_enabled:
-                continue
-            # We add them in GdkPixbuf, string, string format (see glade file)
-            self.source_model.append([pix.get(source.icon), source.name, key])
-            if source.is_default:
-                self.source.set_active(x)
 
         pixmaps = PixmapManager(
             CACHE_DIR,
@@ -129,6 +104,16 @@ class ImporterWindow(Window):
 
         self.widget("perm-nocopyright").set_message_type(Gtk.MessageType.WARNING)
 
+        RemoteSource.load(SOURCES)
+        pix = PixmapManager(SOURCES, size=150)
+        for x, (key, source) in enumerate(RemoteSource.sources.items()):
+            if not source.is_enabled:
+                continue
+            # We add them in GdkPixbuf, string, string format (see ui file)
+            self.source_model.append([pix.get(source.icon), source.name, key])
+            if source.is_default:
+                self.source.set_active(x)
+
     def select_image(self, widget):
         """Callback when clicking on an image in the result list"""
         for item_path in self.widget("results").get_selected_items():
@@ -139,7 +124,10 @@ class ImporterWindow(Window):
 
     def show_license(self, item):
         """Display the current item's license information"""
-        self.widget("perms").foreach(lambda w: w.hide())
+        child = self.widget("perms").get_first_child()
+        while child:
+            child.hide()
+            child = child.get_next_sibling()
         info = item.license_info
         for mod in info["modules"]:
             self.widget("perm-" + mod).show()
@@ -277,9 +265,12 @@ class ImporterWindow(Window):
 class App(GtkApp):
     """Load the inkscape extensions glade file and attach to window"""
 
-    glade_dir = os.path.join(os.path.dirname(__file__))
-    app_name = "inkscape-import-web-image"
-    windows = [ImporterWindow]
+    ui_dir = os.path.join(os.path.dirname(__file__))
+    app_name = "org.inkscape.import-web-image"
+
+    def on_activate(self):
+        win = ImporterWindow(self)
+        win.window.present()
 
 
 class ImportWebImage(inkex.EffectExtension):
@@ -368,10 +359,7 @@ class ImportWebImage(inkex.EffectExtension):
                     child.set("inkscape:groupmode", None)
 
     def effect(self):
-        def select_func(filename):
-            self.import_from_file(filename)
-
-        App(start_loop=True, select=select_func)
+        App(select=self.import_from_file).run_wrapped()
 
     def import_raster(self, filename, handle):
         """Import a raster image"""
