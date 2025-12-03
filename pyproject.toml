@@ -10,7 +10,7 @@ license = "GPL-3.0-or-later"
 # They are merely for packagers' convenience and are used in CI for extensions.
 [tool.poetry.dependencies]
 python = ">=3.7"
-appdirs = "1.4.4"
+platformdirs = ">=4.0"
 requests = "*"
 beautifulsoup4 = "4.10.0"
 CacheControl = {extras = ["filecache"], version = "*"}

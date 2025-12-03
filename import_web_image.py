@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 
 from collections import defaultdict
 from base64 import encodebytes
-from appdirs import user_cache_dir
+from platformdirs import user_cache_dir
 
 import inkex
 from inkex import Style
