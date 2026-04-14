@@ -12,12 +12,15 @@ This repository is meant to provide additional sources on top of already impleme
 
 ## Sources
 
-Already implemented and shipped with Inkscape:
+Shipped with Inkscape:
 - [Bioicons](https://bioicons.com/) `bioicons`
 - [Inkscape Comunity](https://inkscape.org/gallery/) `inkscape-web`
 - [Open Clipart Library](https://openclipart.org/) `ocal`
 - [Reactome](https://reactome.org/) `bioreactome`
 - [Wikimedia Commons](https://commons.wikimedia.org) `wikimedia`
+
+Added in this repository:
+- [SciDraw](https://scidraw.io/) `scidraw`
 
 New sources can be added at any time. They should include an icon and a python file with the same name. Sources should allow the user to search and insert resources from the target website or platform.
 
