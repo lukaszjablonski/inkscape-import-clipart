@@ -57,12 +57,14 @@ class OpenClipart(RemoteSource):
         for div in soup.find_all("div", {"class": "modified-card"}):
             if div.figure.a and div.figure.a.img:
                 #link = urljoin(self.base_url, div.a.get("href"))
-                img = urljoin(self.base_url, div.a.img.get("src"))
+                img = urljoin(self.base_url, div.a.img.get("src"))                   
+                name = div.findAll("div", {"class": "card-content"})[0].findAll("div", {"class": "media-content"})[0].find_all("p", {"class": "title"})[0].contents[0].strip()
 
                 yield {
-                    "file": img,  # Actual file
-                    "name": div.a.img.get("alt"),
-                    "thumbnail": img,
+                    "file": img,  # actual file
+                    #"name": div.a.img.get("alt"),
+                    "name": name[:1].upper() + name[1:] if name else "", # capitalise first letter only (source: https://replit.com/discover/how-to-capitalize-first-letter-in-python#using-string-slicing-for-cleaner-code)
+                    "thumbnail": img, # there is no thumbnail but actual file only
                     "author": "",
                     "license": "cc-0",
                 }
@@ -88,7 +90,7 @@ class OpenClipart(RemoteSource):
                 next_page = item
             else:
                 items.append(item)
-        # Often ocal will have empty pages, weirdly.
+        # If returned empty pages
         if not items and next_page:
             return next_page()
         # None empty page, return all
