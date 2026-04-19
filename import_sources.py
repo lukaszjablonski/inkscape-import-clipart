@@ -1,6 +1,7 @@
 #
 # Copyright 2021 Martin Owens <doctormo@gmail.com>
 # Copyright 2022 Simon Duerr <dev@simonduerr.eu>
+# Copyright 2026 Lukasz Jablonski <lukasz.jablonski@wp.eu>
 #
 # This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -153,26 +154,38 @@ class RemoteFile:
                 raise ValueError(f"Field {field} not provided in RemoteFile package")
         self.info = info
         self.remote = remote
-        
-    @property # Now a property that directly provides the path or downloads if needed
+
+    @property
     def icon(self):
         """Returns the local path to the thumbnail."""
         thumbnail_path = self.info["thumbnail"]
-        # Check if the thumbnail is already a local, accessible file
+        # If already a local file, return as-is
         if os.path.isabs(thumbnail_path) and os.path.exists(thumbnail_path):
             return thumbnail_path
-        # Otherwise, assume it's a URL and let the remote source download it
+        # Otherwise download it
         return self.remote.to_local_file(thumbnail_path)
 
-    @property # Now a property that directly provides the path or downloads if needed
-    def file(self):
-        """Returns the local path to the main file."""
+    def get_file(self):
+        """
+        Override this in subclasses for custom file fetching logic
+        (e.g. when extra scraping steps are needed to find the real URL).
+        Default behaviour: download directly from info["file"] URL.
+        """
         file_path = self.info["file"]
-        # Check if the file is already a local, accessible file
+        # If already a local file, return as-is
         if os.path.isabs(file_path) and os.path.exists(file_path):
             return file_path
-        # Otherwise, assume it's a URL and let the remote source download it
+        # Otherwise download it
         return self.remote.to_local_file(file_path)
+
+    @property
+    def file(self):
+        """
+        Property that calls get_file().
+        Subclasses should override get_file(), not this property,
+        so that custom fetching logic is always used correctly.
+        """
+        return self.get_file()
 
     @property
     def string(self):
@@ -230,7 +243,7 @@ class RemoteSource:
 
     def search(self, query, tags=[]):
         """
-        Search for the given query and yield basic informational blocks t hand to file_cls.
+        Search for the given query and yield basic informational blocks to hand to file_cls.
 
         Required fields per yielded object are: name, license, thumbnail and file.
         Optional fields are: id, summary, author, created, popularity
@@ -276,36 +289,33 @@ class RemoteSource:
     def to_local_file(self, path_or_url):
         """
         Gets a remote url and turns it into a local file,
-        or returns if already a local file.
+        or returns the path if it is already a local file.
         """
-        # If the input is already an absolute local path that exists, return it.
-        # This prevents trying to download already-local files.
+        # If already a local file, return as-is
         if os.path.isabs(path_or_url) and os.path.exists(path_or_url):
             return path_or_url
 
-        # Proceed with download if it's not a local file
-        # Using urlparse to safely get filename from potentially complex URLs
+        # Use urlparse to safely get filename from potentially complex URLs
         from urllib.parse import urlparse
         parsed_url = urlparse(path_or_url)
-        # Handle cases where path might be empty or not a simple filename
         filename = os.path.basename(parsed_url.path)
-        if not filename: # Fallback if basename is empty (e.g., URL ends with /)
-            filename = f"downloaded_file_{abs(hash(path_or_url))}" # Create a unique name
+        # Fallback if basename is empty (e.g. URL ends with /)
+        if not filename:
+            filename = f"downloaded_file_{abs(hash(path_or_url))}"
 
         filepath = os.path.join(self.cache_dir, filename)
-        
+
         headers = {"User-Agent": "Inkscape"}
         try:
-            # Use path_or_url directly for the request, not filename
             remote = self.session.get(path_or_url, headers=headers)
-            remote.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+            remote.raise_for_status()
 
             with open(filepath, "wb") as fhl:
-                fhl.write(remote.content)
-            return filepath
+                if fhl.write(remote.content):
+                    return filepath
         except requests.exceptions.RequestException as err:
             logging.error(f"Error downloading {path_or_url}: {err}")
             return None
-        except Exception as err: # Catch other potential errors
+        except Exception as err:
             logging.error(f"Unexpected error in to_local_file for {path_or_url}: {err}")
             return None

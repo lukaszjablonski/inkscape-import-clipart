@@ -15,12 +15,10 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import sys
-import json
 import logging
 
 from import_sources import RemoteSource, RemoteFile
-from urllib.parse import urljoin, parse_qs
+from urllib.parse import urljoin
 
 try:
     from bs4 import BeautifulSoup
@@ -28,72 +26,56 @@ except ImportError:
     BeautifulSoup = None
 
 
-class OpenClipartFile(RemoteFile):
-    def get_file(self):
-        """Extract search result from html"""
-        response = self.remote.session.get(self.info["file"])
-        soup = BeautifulSoup(response.text, features="lxml")
-        for script in soup.find_all("script"):
-            content = script.contents
-            if content and "image" in content[0]:
-                try:
-                    data = json.loads(content[0])
-                    return self.remote.to_local_file(data["image"]["url"])
-                except Exception:
-                    continue
-        logging.error("Couldn't load svg from %s", self.info["file"])
-
-
-class OpenClipart(RemoteSource):
+class Scidraw(RemoteSource):
     name = "SciDraw"
     icon = "sources/scidraw.svg"
     base_url = "https://scidraw.io/"
     is_enabled = BeautifulSoup is not None
-    file_cls = OpenClipartFile
+    # No custom file_cls needed: base RemoteFile.get_file()
+    # handles direct URL downloads correctly
+    file_cls = RemoteFile
 
     def html_search(self, response):
         """Extract search results from html"""
         soup = BeautifulSoup(response.text, features="lxml")
         for div in soup.find_all("div", {"class": "modified-card"}):
-            if div.figure.a and div.figure.a.img:
-                #link = urljoin(self.base_url, div.a.get("href"))
-                img = urljoin(self.base_url, div.a.img.get("src"))                   
-                name = div.findAll("div", {"class": "card-content"})[0].findAll("div", {"class": "media-content"})[0].find_all("p", {"class": "title"})[0].contents[0].strip()
+            if div.figure and div.figure.a and div.figure.a.img:
+                img = urljoin(self.base_url, div.figure.a.img.get("src"))
+                try:
+                    name = (
+                        div
+                        .find("div", {"class": "card-content"})
+                        .find("div", {"class": "media-content"})
+                        .find("p", {"class": "title"})
+                        .get_text(strip=True)
+                    )
+                except AttributeError:
+                    name = ""
+
+                # Capitalise first letter only
+                name = name[:1].upper() + name[1:] if name else ""
 
                 yield {
-                    "file": img,  # actual file
-                    #"name": div.a.img.get("alt"),
-                    "name": name[:1].upper() + name[1:] if name else "", # capitalise first letter only (source: https://replit.com/discover/how-to-capitalize-first-letter-in-python#using-string-slicing-for-cleaner-code)
-                    "thumbnail": img, # there is no thumbnail but actual file only
+                    "file": img, # direct SVG URL
+                    "name": name,
+                    "thumbnail": img, # no separate thumbnail available
                     "author": "",
-                    "license": "cc-0",
+                    "license": "cc-by-4.0", # one license for all images (https://scidraw.io/terms/)
                 }
 
-        #for page in soup.find_all("a", {"class": "page-link", "aria-label": "Next"}):
-        #    if "=" in page.get("href", ""):
-        #        yield lambda: self._search(**parse_qs(page.get("href").split("?")[-1]))
-
     def search(self, query):
-        """HTML searching for now"""
+        """HTML searching"""
         return self._search(q=query)
 
     def _search(self, **params):
         try:
             response = self.session.get(self.base_url, params=params)
-        except Exception:
+            response.raise_for_status()
+        except Exception as err:
+            logging.error("Scidraw: search request failed: %s", err)
             return []
 
         items = []
-        next_page = None
         for item in self.html_search(response):
-            if callable(item):
-                next_page = item
-            else:
-                items.append(item)
-        # If returned empty pages
-        if not items and next_page:
-            return next_page()
-        # None empty page, return all
-        if next_page:
-            items.append(next_page)
+            items.append(item)
         return items

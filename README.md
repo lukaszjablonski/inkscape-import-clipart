@@ -12,7 +12,7 @@ This repository is meant to provide additional sources on top of already impleme
 
 ## Sources
 
-Shipped with Inkscape [1.2 and later](https://wiki.inkscape.org/wiki/Release_notes/1.2):
+Shipped with [Inkscape 1.2](https://wiki.inkscape.org/wiki/Release_notes/1.2) and later:
 - [Bioicons](https://bioicons.com/) `bioicons`
 - [Inkscape Comunity](https://inkscape.org/gallery/) `inkscape-web`
 - [Open Clipart Library](https://openclipart.org/) `ocal`
@@ -28,9 +28,9 @@ Please see existing python files for examples.
 
 ## Install
 
-Since "Import Web Image" (Clipart Importer; `inkscape-import-clipart`) is shipped with Inkscape 1.2 and later copying only new sources implemented in this repository should be enough.
+Since "Import Web Image" (Clipart Importer; `inkscape-import-clipart`) is shipped with [Inkscape 1.2](https://wiki.inkscape.org/wiki/Release_notes/1.2) and later copying only new sources implemented in this repository should be enough.
 
 To use only selected sources:
-- On Windows copy selected `souurcename` files (i.e., `sourcename.py` and `sourcename.svg`) to `C:\Program Files\Inkscape\share\inkscape\extensions\other\clipart\sources`, where `C:\Program Files\Inkscape\` is Inkscape install location
+- On Windows copy selected `sourcename` files (i.e., `sourcename.py` and `sourcename.svg`) to `C:\Program Files\Inkscape\share\inkscape\extensions\other\clipart\sources`, where `C:\Program Files\Inkscape\` is Inkscape install location
 
 NOTE: Sources labelled with ⚠ require modified extension core source code! To identify modified files refer to "see details" next to label.

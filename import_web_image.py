@@ -3,6 +3,7 @@
 #
 # Copyright 2021 Martin Owens <doctormo@gmail.com>
 # Copyright 2022 Simon Duerr <dev@simonduerr.eu>
+# Copyright 2026 Lukasz Jablonski <lukasz.jablonski@wp.eu>
 #
 # This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -207,9 +208,10 @@ class ImporterWindow(Window):
 
         to_exit = True
         for item in items:
-            self.select_func(item.file) # CHANGED: was item.get_file(), now item.file
-            # XXX This pagination control is not good. Replace it with normal controls.
-            # elif isinstance(item, RemotePage):
+            # item.file calls get_file() via the property,
+            # which allows subclasses to override get_file()
+            # for custom fetching logic (e.g. OCAL HTML scraping)
+            self.select_func(item.file)
         if to_exit:
             self.exit()
 
@@ -292,7 +294,7 @@ class ImportWebImage(inkex.EffectExtension):
         target = self.svg.defs
         for child in defs:
             if isinstance(child, StyleElement):
-                continue  # Already appled in merge_stylesheets()
+                continue  # Already applied in merge_stylesheets()
             target.append(child)
 
     def merge_stylesheets(self, svg):
@@ -342,7 +344,7 @@ class ImportWebImage(inkex.EffectExtension):
                 objs = list(self.import_svg(new_svg))
 
                 if len(objs) == 1 and isinstance(objs[0], inkex.Group):
-                    # Prevent too many groups, if item aready has one.
+                    # Prevent too many groups, if item already has one.
                     container = objs[0]
                 else:
                     # Make a new group to contain everything
@@ -375,13 +377,11 @@ class ImportWebImage(inkex.EffectExtension):
 
     def import_raster(self, filename, handle):
         """Import a raster image"""
-        # Don't read the whole file to check the header
         handle.seek(0)
         file_type = self.get_type(filename, handle.read(10))
         handle.seek(0)
 
         if file_type:
-            # Future: Change encodestring to encodebytes when python3 only
             node = Image()
             node.label = os.path.basename(filename)
             node.set(
@@ -395,7 +395,6 @@ class ImportWebImage(inkex.EffectExtension):
     @staticmethod
     def get_type(path, header):
         """Basic magic header checker, returns mime type"""
-        # Taken from embedimage.py
         for head, mime in (
             (b"\x89PNG", "image/png"),
             (b"\xff\xd8", "image/jpeg"),
