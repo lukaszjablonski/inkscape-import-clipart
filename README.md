@@ -20,7 +20,7 @@ Shipped with [Inkscape 1.2](https://wiki.inkscape.org/wiki/Release_notes/1.2) an
 - [Wikimedia Commons](https://commons.wikimedia.org) `wikimedia`
 
 Added in this repository:
-- [SciDraw](https://scidraw.io/) `scidraw` ⚠ [see details](https://github.com/lukaszjablonski/inkscape-import-clipart/compare/a0df44a..8d2948c)
+- [SciDraw](https://scidraw.io/) `scidraw` ⚠ [see details](https://github.com/lukaszjablonski/inkscape-import-clipart/compare/8d2948c..33da181)
 
 New sources can be added at any time. They should include an icon and a python file with the same name. Sources should allow the user to search and insert resources from the target website or platform.
 
