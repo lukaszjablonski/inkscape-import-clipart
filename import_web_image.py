@@ -48,6 +48,7 @@ from inkex.elements import (
     Metadata,
     SvgDocumentElement,
     StyleElement,
+    TextElement,
 )
 from gi.repository import Gtk
 
@@ -62,7 +63,7 @@ class LicenseOverlay(OverlayFilter):
     pixmaps = PixmapManager(LICENSES)
 
     def get_overlay(self, item=None, manager=None):
-        if item is None:  # Default image
+        if item is None:
             return None
         return self.pixmaps.get(item.get_overlay())
 
@@ -100,7 +101,6 @@ class ImporterWindow(Window):
 
         self.widget("dl-searching").hide()
 
-        # Add each of the source services from their plug-in modules
         self.source = self.widget("service_list")
         self.source_model = self.source.get_model()
         self.source_model.clear()
@@ -110,7 +110,6 @@ class ImporterWindow(Window):
         for x, (key, source) in enumerate(RemoteSource.sources.items()):
             if not source.is_enabled:
                 continue
-            # We add them in GdkPixbuf, string, string format (see glade file)
             self.source_model.append([pix.get(source.icon), source.name, key])
             if source.is_default:
                 self.source.set_active(x)
@@ -166,7 +165,6 @@ class ImporterWindow(Window):
         self.widget("btn-multiple").show()
         self.widget("multiple-box").hide()
         self.widget("multiple-buttons").hide()
-        is_selected = bool(list(self.results.get_selected_items()))
         self.pool.clear()
         self.multiple = False
         self.update_btn_import()
@@ -208,10 +206,7 @@ class ImporterWindow(Window):
 
         to_exit = True
         for item in items:
-            # item.file calls get_file() via the property,
-            # which allows subclasses to override get_file()
-            # for custom fetching logic (e.g. OCAL HTML scraping)
-            self.select_func(item.file)
+            self.select_func(item.file, item=item)
         if to_exit:
             self.exit()
 
@@ -225,7 +220,7 @@ class ImporterWindow(Window):
 
     @asyncme.run_or_none
     def async_search(self, query):
-        """Asyncronous searching in PyPI"""
+        """Asyncronous searching"""
         for resource in self.get_selected_source().file_search(query):
             self.add_search_result(resource)
         self.search_finished()
@@ -235,7 +230,6 @@ class ImporterWindow(Window):
         """Adding things to Gtk must be done in mainloop"""
         if isinstance(resource, RemotePage):
             return self.set_next_page(resource)
-
         self.results.add_item(resource)
 
     def search_clear(self, widget=None):
@@ -294,24 +288,21 @@ class ImportWebImage(inkex.EffectExtension):
         target = self.svg.defs
         for child in defs:
             if isinstance(child, StyleElement):
-                continue  # Already applied in merge_stylesheets()
+                continue
             target.append(child)
 
     def merge_stylesheets(self, svg):
-        """Because we don't want conflicting style-sheets (classes, ids, etc) we scrub them"""
+        """Scrub conflicting style-sheets (classes, ids, etc)"""
         elems = defaultdict(list)
-        # 1. Find all styles, and all elements that apply to them
         for sheet in svg.getroot().stylesheets:
             for style in sheet:
                 xpath = style.to_xpath()
                 for elem in svg.xpath(xpath):
                     elems[elem].append(style)
-                    # 1b. Clear possibly conflicting attributes
                     if "@id" in xpath:
                         elem.set_random_id()
                     if "@class" in xpath:
                         elem.set("class", None)
-        # 2. Apply each style cascade sequentially
         for elem, styles in elems.items():
             output = Style()
             for style in styles:
@@ -325,7 +316,7 @@ class ImportWebImage(inkex.EffectExtension):
             if isinstance(child, SvgDocumentElement):
                 yield from self.import_svg(child)
             elif isinstance(child, StyleElement):
-                continue  # Already applied in merge_stylesheets()
+                continue
             elif isinstance(child, Defs):
                 self.merge_defs(child)
             elif isinstance(child, (NamedView, Metadata)):
@@ -333,45 +324,187 @@ class ImportWebImage(inkex.EffectExtension):
             else:
                 yield child
 
-    def import_from_file(self, filename):
+    def get_viewport_center(self):
+        """
+        Return the (x, y) center of the currently visible viewport
+        in document coordinates.
+        Uses the namedview to find current zoom/pan position.
+        """
+        try:
+            namedview = self.svg.namedview
+            cx   = namedview.get("inkscape:cx")
+            cy   = namedview.get("inkscape:cy")
+            zoom = namedview.get("inkscape:zoom")
+
+            if cx is not None and cy is not None and zoom is not None:
+                cx   = float(cx)
+                cy   = float(cy)
+                zoom = float(zoom)
+
+                # inkscape:cx/cy are the document coordinates of the
+                # viewport center - use them directly
+                return cx, cy
+
+        except Exception as e:
+            logging.warning(f"get_viewport_center failed: {e}")
+
+        # Fallback: use document center
+        try:
+            width  = self.svg.unittouu(self.svg.get("width",  "744"))
+            height = self.svg.unittouu(self.svg.get("height", "1052"))
+            return width / 2, height / 2
+        except Exception:
+            return 0.0, 0.0
+
+    def center_group_on_viewport(self, group):
+        """
+        Move the group so its center aligns with the viewport center.
+        """
+        try:
+            bbox = group.bounding_box()
+            if bbox is None:
+                logging.warning("center_group_on_viewport: bbox is None")
+                return
+
+            # Current center of the group
+            group_cx = bbox.left + bbox.width  / 2
+            group_cy = bbox.top  + bbox.height / 2
+
+            # Target center (viewport center)
+            target_cx, target_cy = self.get_viewport_center()
+
+            # Calculate translation needed
+            dx = target_cx - group_cx
+            dy = target_cy - group_cy
+
+            # Apply translation
+            group.transform.add_translate(dx, dy)
+
+        except Exception as e:
+            logging.warning(f"center_group_on_viewport failed: {e}")
+
+    def make_annotation(self, item, container, scale):
+        """
+        Create a text annotation group below the imported SVG containing:
+        - Figure title  (bold, larger)
+        - Author        (normal)
+        - DOI link      (normal)
+
+        Uses container bounding box for accurate positioning.
+        Returns an inkex.Group or None if no metadata available.
+        """
+        # Settings - adjust to your preference
+        font_size_title = 10    # px
+        font_size_sub   = 8     # px
+        line_gap        = 4     # px gap between lines
+        margin_top      = 6     # px gap between image bottom and first line
+        font_family     = "sans-serif"
+
+        # Build lines: (text, font_size, is_bold)
+        lines = []
+        if hasattr(item, "title") and item.title:
+            lines.append((item.title, font_size_title, True))
+        if hasattr(item, "author") and item.author:
+            lines.append((item.author, font_size_sub, False))
+        if hasattr(item, "doi") and item.doi:
+            lines.append((item.doi, font_size_sub, False))
+
+        if not lines:
+            return None
+
+        # Get bounding box of the imported container.
+        # NOTE: container must already be in the document tree.
+        try:
+            bbox   = container.bounding_box()
+            x_pos  = bbox.left
+            y_base = bbox.bottom
+        except Exception as e:
+            logging.warning(f"make_annotation: bbox failed: {e}")
+            x_pos  = 0.0
+            y_base = 100.0 * scale
+
+        annotation_group = inkex.Group()
+        annotation_group.label = "annotation"
+
+        y = y_base + margin_top
+
+        for text, size, bold in lines:
+            text_elem = TextElement()
+            text_elem.text = text
+            text_elem.style = inkex.Style({
+                "font-size":   f"{size}px",
+                "font-family": font_family,
+                "font-weight": "bold" if bold else "normal",
+                "fill":        "#000000",
+            })
+            text_elem.set("x", str(x_pos))
+            text_elem.set("y", str(y))
+            annotation_group.append(text_elem)
+            y += size + line_gap
+
+        return annotation_group
+
+    def import_from_file(self, filename, item=None):
+        """
+        Import an SVG or raster file into the document.
+        If item has DOI/title/author metadata,
+        a text annotation is added below the image.
+        The whole group is then centered on the current viewport.
+        """
         if not filename or not os.path.isfile(filename):
             return
+
         with open(filename, "rb") as fhl:
             head = fhl.read(100)
+
             if b"<?xml" in head or b"<svg" in head:
                 new_svg = load_svg(head + fhl.read())
-                # Add each object to the container
                 objs = list(self.import_svg(new_svg))
 
                 if len(objs) == 1 and isinstance(objs[0], inkex.Group):
-                    # Prevent too many groups, if item already has one.
                     container = objs[0]
                 else:
-                    # Make a new group to contain everything
                     container = inkex.Group()
                     for child in objs:
                         container.append(child)
 
-                # Retain the original filename as a group label
                 container.label = os.path.basename(filename)
-                # Apply unit transformation to keep things the same sizes.
-                container.transform.add_scale(
+                scale = (
                     self.svg.unittouu(1.0) / new_svg.getroot().unittouu(1.0)
                 )
+                container.transform.add_scale(scale)
 
             else:
                 container = self.import_raster(filename, fhl)
+                scale     = 1.0
 
-            self.svg.get_current_layer().append(container)
+            # Wrap image + annotation in an outer group
+            outer_group = inkex.Group()
+            outer_group.label = os.path.basename(filename)
+            outer_group.append(container)
 
-            # Make sure that none of the new content is a layer.
-            for child in container.descendants():
+            # Append to document BEFORE bounding_box() calls
+            self.svg.get_current_layer().append(outer_group)
+
+            # Add annotation if item has metadata
+            if item is not None and any(
+                hasattr(item, attr) for attr in ("doi", "title")
+            ):
+                annotation = self.make_annotation(item, container, scale)
+                if annotation is not None:
+                    outer_group.append(annotation)
+
+            # Center the whole group (image + annotation) on the viewport
+            self.center_group_on_viewport(outer_group)
+
+            # Make sure none of the new content is a layer
+            for child in outer_group.descendants():
                 if isinstance(child, inkex.Group):
                     child.set("inkscape:groupmode", None)
 
     def effect(self):
-        def select_func(filename):
-            self.import_from_file(filename)
+        def select_func(filename, item=None):
+            self.import_from_file(filename, item=item)
 
         App(start_loop=True, select=select_func)
 
@@ -398,9 +531,9 @@ class ImportWebImage(inkex.EffectExtension):
         for head, mime in (
             (b"\x89PNG", "image/png"),
             (b"\xff\xd8", "image/jpeg"),
-            (b"BM", "image/bmp"),
-            (b"GIF87a", "image/gif"),
-            (b"GIF89a", "image/gif"),
+            (b"BM",       "image/bmp"),
+            (b"GIF87a",   "image/gif"),
+            (b"GIF89a",   "image/gif"),
             (b"MM\x00\x2a", "image/tiff"),
             (b"II\x2a\x00", "image/tiff"),
         ):
