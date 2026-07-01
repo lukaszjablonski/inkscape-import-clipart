@@ -15,7 +15,7 @@ This repository is meant to provide additional sources on top of already impleme
 Already implemented and shipped with Inkscape:
 - [Bioicons](https://bioicons.com/) `bioicons`
 - [Inkscape Comunity](https://inkscape.org/gallery/) `inkscape-web`
-- [Open Clipart Library](https://openclipart.org/) `ocal`
+- [Open Clipart Library](https://openclipart.org/) `ocal` ⚠ [additional steps needed](https://github.com/lukaszjablonski/inkscape-import-clipart/issues/1)
 - [Reactome](https://reactome.org/) `bioreactome`
 - [Wikimedia Commons](https://commons.wikimedia.org) `wikimedia`
 
